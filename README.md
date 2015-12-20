@@ -1,4 +1,4 @@
-# PoShue
+# PoSHue
 Basic PowerShell to control Philips Hue Luminaires using the REST API of the Hue Bridge.
 
 ## Why?
