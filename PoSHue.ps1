@@ -75,14 +75,18 @@ Function Switch-HueLight  {
 
 Function Set-HueLight {
     <#
-    Sets the light's brightness, hue and saturation levels
+    Sets the light's ((Hue and Saturation levels) or (Colour Temperature)) and (Brightness), 
+    If you set the colour temperature value, Hue and Sat values are ignored (ie. Use one or the other, not both)
+    For Hue: Both 0 and 65535 are red, 25500 is green and 46920 is blue.
+    For Colour Temp: 153 is 6500K (White), 500 is 2000K (Warm)
     #>
     param([parameter(Mandatory=$true)][string] $BridgeIP,
           [parameter(Mandatory=$true)][string] $UserID,
           [parameter(Mandatory=$true)][string] $LightNumber,
           [ValidateRange(1,254)][int] $Brightness,
           [ValidateRange(0,65535)][int] $Hue,
-          [ValidateRange(1,254)][int] $Saturation
+          [ValidateRange(1,254)][int] $Saturation,
+          [ValidateRange(153,500)][int] $ColourTemperature
     )
 
     $Settings = @{}
@@ -96,6 +100,10 @@ Function Set-HueLight {
     If ($Saturation) {
         $Settings.Add("sat", $Saturation)
     }
+    If ($ColourTemperature) {
+        $Settings.Add("ct", $ColourTemperature)
+    }
+
 
     $Result = Invoke-RestMethod -Method Put -Uri "http://$BridgeIP/api/$UserID/lights/$LightNumber/state" -Body (ConvertTo-Json $Settings)
 
@@ -107,6 +115,9 @@ Function Set-HueLight {
 
 $Light = Get-HueLight -BridgeIP $Endpoint -UserID $UserID -LightFriendlyName $LightName
 
-Switch-HueLight -BridgeIP $Endpoint -UserID $UserID -LightNumber $Light -State On
+#Switch-HueLight -BridgeIP $Endpoint -UserID $UserID -LightNumber $Light -State On
 
-Set-HueLight -BridgeIP $Endpoint -UserID $UserID -LightNumber $Light -Brightness 50 -Hue 65535 -Saturation 254
+# Hue Go Default Colour Temperature & Brightness
+Set-HueLight -BridgeIP $Endpoint -UserID $UserID -LightNumber $Light -ColourTemperature 370 -Brightness 50
+
+#Set-HueLight -BridgeIP $Endpoint -UserID $UserID -LightNumber $Light -Brightness 50 -Hue 25500 -Saturation 254
