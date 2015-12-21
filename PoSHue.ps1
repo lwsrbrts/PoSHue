@@ -15,6 +15,11 @@ Class HueBridge {
         $this.BridgeIP = $Bridge
     }
 
+    HueBridge([ipaddress] $Bridge, [string] $APIKey) {
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $APIKey
+    }
+
     ###########
     # METHODS #
     ###########
@@ -30,9 +35,17 @@ Class HueBridge {
             Return $Result[0].success.username
         }
         Else {
-            Return "There was an error."
+            Return "There was an error.`r`n$Result"
         }
     }
+
+    # Still working on this.
+    [string] GetLightsByName() {
+        $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
+        $Lights = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        Return $Lights | Select Name -ExpandProperty Name
+    }
+
 }
 
 Class HueLight {
@@ -151,17 +164,19 @@ Class HueLight {
 $LightName = "Hue go 1"
 
 # The Bridge IP address
-$Endpoint = "192.168.1.12"
+$Endpoint = "127.0.0.1"
 
 # The username created on the bridge
-$UserID = "38cbd1cbcac542f9c26ad393739b7"
+$UserID = "236e9fe2f93ff05e7ee9eabbab1aff6"
 
 # Instantiate a Hue Light Object using one of the overloads
 # Use this constructor to get a reference to an actual light.
 #$Go = [HueLight]::New($LightName, $Endpoint, $UserID)
 # No username/API Key/User ID? Use this overload to get a valid username you can use in the other constructor
-$Bridge = [HueBridge]::New($Endpoint)
+$Bridge = [HueBridge]::New($Endpoint, $UserID)
 
+#$Bridge.SetAPIKey('4f651f866843eb2e398ac884aac0f18')
+$Bridge.GetLightsByName()
 # Do stuff with the light!
 
 # Toggle it on or off
