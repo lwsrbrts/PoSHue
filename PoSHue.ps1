@@ -1,3 +1,40 @@
+Class HueBridge {
+    ##############
+    # PROPERTIES #
+    ##############
+
+    [ipaddress] $BridgeIP
+    [string] $APIKey
+
+    ###############
+    # CONSTRUCTOR #
+    ###############
+
+    # Constructor to return an API Key
+    HueBridge([ipaddress] $Bridge) {
+        $this.BridgeIP = $Bridge
+    }
+
+    ###########
+    # METHODS #
+    ###########
+    [string] GetNewAPIKey() {
+        $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api" -Body '{"devicetype":"PoSHue#PowerShell Hue"}'
+        
+        If ($Result[0].error) {
+            Return $Result[0].error.description
+        }
+        ElseIf ($Result[0].success) {
+            # Assign the API Key and return it.
+            $this.APIKey = $Result[0].success.username
+            Return $Result[0].success.username
+        }
+        Else {
+            Return "There was an error."
+        }
+    }
+}
+
 Class HueLight {
 
     ##############
@@ -14,7 +51,6 @@ Class HueLight {
     [ValidateRange(1,254)][int] $Saturation
     [ValidateRange(153,500)][int] $ColourTemperature
     
-
     ###############
     # CONSTRUCTOR #
     ###############
@@ -25,6 +61,7 @@ Class HueLight {
         $this.Light = $this.GetHueLight($Name)
         $this.GetStatus()
     }
+
 
     ###########
     # METHODS #
@@ -119,8 +156,11 @@ $Endpoint = "192.168.1.12"
 # The username created on the bridge
 $UserID = "38cbd1cbcac542f9c26ad393739b7"
 
-# Instantiate a Hue Light Object
-$Go = [HueLight]::New($LightName, $Endpoint, $UserID)
+# Instantiate a Hue Light Object using one of the overloads
+# Use this constructor to get a reference to an actual light.
+#$Go = [HueLight]::New($LightName, $Endpoint, $UserID)
+# No username/API Key/User ID? Use this overload to get a valid username you can use in the other constructor
+$Bridge = [HueBridge]::New($Endpoint)
 
 # Do stuff with the light!
 
