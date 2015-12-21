@@ -62,7 +62,7 @@ Class HueLight {
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
-    [void] SwitchHueLight([string] $State) {
+    [void] SwitchHueLight([string] $State) { # An overload for SwitchHueLight
     # Set the state of the light. Always does what you give it, irrespective of the current setting.
         Switch ($State) {
             On  {$this.On = $true}
@@ -75,6 +75,8 @@ Class HueLight {
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
+    # Importance of colour settings: XY > CT > HS
+    # I don't have an XY method as it seems illogical.
     [void] SetHueLight([int] $Brightness, [int] $ColourTemperature) {
         $this.Brightness = $Brightness
         $this.ColourTemperature = $ColourTemperature
@@ -87,6 +89,7 @@ Class HueLight {
     }
 
     [void] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation) {
+        # Allows imposing the ValidateRange limits so it seems advisable to do this
         $this.Brightness = $Brightness
         $this.Hue = $Hue
         $this.Saturation = $Saturation
@@ -102,7 +105,6 @@ Class HueLight {
     }
 
 }
-
 
 ##############
 # PROCESSING #
