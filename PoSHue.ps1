@@ -39,11 +39,16 @@ Class HueBridge {
         }
     }
 
-    # Still working on this.
-    [string] GetLightsByName() {
+    [array] GetLightNames() {
         $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         $Lights = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        Return $Lights | Select Name -ExpandProperty Name
+        Return $Lights.Value.Name
+
+        # The below is not necessary.
+        # PoSH extracts the values from the array when an index isn't specified, it seems.
+        # Something new every day.
+        # Return $Lights | Select-Object @{Name="Hue Light Names"; Expression = {$_.Value.Name}}
+
     }
 
 }
@@ -164,10 +169,10 @@ Class HueLight {
 $LightName = "Hue go 1"
 
 # The Bridge IP address
-$Endpoint = "127.0.0.1"
+$Endpoint = "192.168.1.12"
 
 # The username created on the bridge
-$UserID = "236e9fe2f93ff05e7ee9eabbab1aff6"
+$UserID = "38cbd1cbcac542f9c26ad393739b7"
 
 # Instantiate a Hue Light Object using one of the overloads
 # Use this constructor to get a reference to an actual light.
@@ -176,7 +181,7 @@ $UserID = "236e9fe2f93ff05e7ee9eabbab1aff6"
 $Bridge = [HueBridge]::New($Endpoint, $UserID)
 
 #$Bridge.SetAPIKey('4f651f866843eb2e398ac884aac0f18')
-$Bridge.GetLightsByName()
+$Bridge.GetLightNames()
 # Do stuff with the light!
 
 # Toggle it on or off
