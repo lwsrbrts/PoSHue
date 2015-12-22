@@ -11,14 +11,14 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
  * You need to be on your LAN with the Hue Bridge, obviously.
 
 ### Using it
-Copy the PoSHue.ps1 file to the same folder as your script (or somewhere else if you want!) and dotsource it. See Using-PoSHue for an example of doing that.
+Copy the PoSHue.ps1 file to the same folder as your script (or somewhere else if you want!) and use Import-Module on its location. See Using-PoSHue.ps1 for an example of doing that.
 #### HueBridge Class
 Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the ```[HueLight]``` class later.
  1. Get the IP address of your Bridge. Your router might be a good place to look.
- 2. At the bottom of the PoSHue file, instantiate a HueBridge class. Substitue your own bridge's IP address obviously. ```$Bridge = [HueBridge]::New('192.168.1.12')```
+ 2. Instantiate a HueBridge class. Substitue your own bridge's IP address obviously. ```$Bridge = [HueBridge]::New('192.168.1.12')```
  3. Get the properties of the Bridge object. ```$Bridge```
  4. You'll see just the IP address property for now.
- 5. Get a new APIKey (username) for the bridge. This is what you use to authenticate with the bridge when you're asking for information. The only way to get this is to press the link button on your bridge.
+ 5. Get a new APIKey (username) for the bridge. This is what you use to authenticate with the bridge to get information from it. The only way to get the key is to press the link button on your bridge.
  6. Press the link button on the bridge then call the ```$Bridge.GetNewAPIKey()``` method.
  7. You should get a string of digits back. Record these for further use. Pressing the link button on the Bridge might get tedious! You're automating, remember. :)
  8. Now that you have an APIKey/username stored in your bridge object, go ahead and get a list of the lights on the Bridge using the ```$Bridge.GetLightNames()``` method.
