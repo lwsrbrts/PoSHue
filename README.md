@@ -16,6 +16,7 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
 Copy the PoSHue.ps1 file to the same folder as your script (or somewhere else if you want!) and use Import-Module on its location. See Using-PoSHue.ps1 for an example of doing that.
 
 ----
+
 #### HueBridge Class
 Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the ```[HueLight]``` class later.
  1. Get the IP address of your Bridge. The ```[HueBridge]``` class contains a static method (this means you can call it without instantiating the class) called ```.FindHueBridge()```.
@@ -53,7 +54,9 @@ Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username
  ```powershell
  $Bridge.GetAllLights()
  ```
+
 ---
+
 #### HueLight Class
 The HueLight class allows you to set properties of a light (the interesting stuff!) like Brightness, Hue & Saturation and Colour Temperature. When you instantiate the ```[HueLight]``` class, you do so by providing the IP Address of your bridge, the APIKey/username and the name of the Hue Light you want to control.
 There are obviously some restrictions on what you can set and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware. You could obviously change the ValidateRange but the lights won't accept a value outside these anyway so you needn't bother.
