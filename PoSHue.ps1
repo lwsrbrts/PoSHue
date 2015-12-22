@@ -21,6 +21,7 @@ Class HueBridge {
         $this.BridgeIP = $Bridge
     }
 
+    # Constructor to return lights and names of lights.
     HueBridge([ipaddress] $Bridge, [string] $APIKey) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
@@ -29,6 +30,13 @@ Class HueBridge {
     ###########
     # METHODS #
     ###########
+
+    Static [PSObject] FindHueBridge() {
+        $UPnPFinder = New-Object -ComObject UPnP.UPnPDeviceFinder
+        $UPnPDevices = $UPnPFinder.FindByType("upnp:rootdevice", 0) | Where-Object {$_.Description -match "Hue"} | Select-Object FriendlyName, PresentationURL, SerialNumber | Format-List
+        Return $UPnPDevices
+    }
+
     [string] GetNewAPIKey() {
         $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api" -Body '{"devicetype":"PoSHue#PowerShell Hue"}'
         
