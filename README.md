@@ -23,7 +23,7 @@ Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username
  7. You should get a string of digits back. Record these for further use. Pressing the link button on the Bridge might get tedious! You're automating, remember. :)
  8. Now that you have an APIKey/username stored in your bridge object, go ahead and get a list of the lights on the Bridge using the ```$Bridge.GetLightNames()``` method.
  9. You should see a list (an array) of lights registered to the bridge. The Bridge uses numbers to refer to the lights - we humans aren't great at associating numbers with objects so I use names. The ```[HueLight]``` class also uses names instead of numbers.
- 10. If you call ```$Bridge``` again by itself, you'll see the APIKey property. Remember, save this somewhere.
+ 10. If you call ```$Bridge``` again by itself, you'll see the APIKey property there too. Remember, save this somewhere.
  11. If you already have an APIKey/username, you can instantiate the ```[HueBridge]``` class with that in order to use the ```.GetLightNames()``` method to get the names of the lights on the bridge. Something like ```$Bridge = [HueBridge]::New('192.168.1.12', '23343462grg456brergd56')```
 
 #### HueLight Class
