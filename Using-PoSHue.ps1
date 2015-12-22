@@ -5,6 +5,13 @@
 #Import-Module ".\PoSHue.ps1"
 Import-Module "$PSScriptRoot\PoSHue.ps1"
 
+# Hue Bridge IP address
+# How you get this is up to you. Try your router.
+$Endpoint = "192.168.1.12"
+
+# The APIKey/username created on the bridge
+$UserID = "38cbd1cbcac542f9c26ad393739b7"
+
 #####################
 # [HueBridge] Class #
 #####################
@@ -33,22 +40,21 @@ $Bridge.GetLightNames()
 # of Hue Lights registered to the Bridge.
 $Bridge = [HueBridge]::New($Endpoint, $UserID)
 
-# Get a list of Hue Lights registered to the bridge.
-# Returns an [array] object.
+# Get an object containing all of the lights information
+# from the bridge. Helps you check the current actual status
+# of lights and their settings.
+$Bridge.GetAllLights()
+
+# Get a list of friendly names of Hue Lights registered to the bridge.
+# Returns an [array] object of the light's names.
 $Bridge.GetLightNames()
 
 ####################
 # [HueLight] Class #
 ####################
 
-# The Bridge IP address
-$Endpoint = "192.168.1.12"
-
 # The name of the light (obtained from [HueBridge]::GetLightNames())
 $LightName = "Hue go 1"
-
-# The APIKey/username created on the bridge
-$UserID = "38cbd1cbcac542f9c26ad393739b7"
 
 # Instantiate a Hue Light Object using one of the overloads
 # Use this constructor to get a reference to an actual light.

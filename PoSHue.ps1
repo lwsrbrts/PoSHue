@@ -1,6 +1,7 @@
 Enum LightState {
-    On
-    Off
+    # Currently unused - wondering how to.
+    On = $True
+    Off = $False
 }
 
 Class HueBridge {
@@ -53,9 +54,12 @@ Class HueBridge {
         # PoSH extracts the values from the array when an index isn't specified, it seems.
         # Something new every day.
         # Return $Lights | Select-Object @{Name="Hue Light Names"; Expression = {$_.Value.Name}}
-
     }
 
+    [PSCustomObject] GetAllLights() {
+        $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
+        Return $Result
+    }
 }
 
 Class HueLight {
