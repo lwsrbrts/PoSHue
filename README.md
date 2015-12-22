@@ -11,7 +11,7 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
  * You need to be on your LAN with the Hue Bridge, obviously.
 
 ### Using it
-I haven't tried this myself but one of the limitations of PowerShell 5 classes are that you must use the same script context. It can't be called as a module so to speak. I'm sure they're working on this.
+Copy the PoSHue.ps1 file to the same folder as your script (or somewhere else if you want!) and dotsource it. See Using-PoSHue for an example of doing that.
 #### HueBridge Class
 Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the ```[HueLight]``` class later.
  1. Get the IP address of your Bridge. Your router might be a good place to look.

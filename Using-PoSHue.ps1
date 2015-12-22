@@ -2,6 +2,7 @@
 
 # Importing the classes - verb is wrong but hey, it works
 # and I can get stuff out of the class file.
+#Import-Module ".\PoSHue.ps1"
 Import-Module "$PSScriptRoot\PoSHue.ps1"
 
 #####################

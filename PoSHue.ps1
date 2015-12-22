@@ -1,3 +1,8 @@
+Enum LightState {
+    On
+    Off
+}
+
 Class HueBridge {
     ##############
     # PROPERTIES #
