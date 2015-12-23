@@ -54,6 +54,10 @@ Class HueBridge {
     }
 
     [array] GetLightNames() {
+        If (!($this.APIKey)) {
+            Return "Need the API Key for this operation."
+        }
+
         $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         $Lights = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         Return $Lights.Value.Name
@@ -65,6 +69,9 @@ Class HueBridge {
     }
 
     [PSCustomObject] GetAllLights() {
+        If (!($this.APIKey)) {
+            Return "Need the API Key for this operation."
+        }
         $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         Return $Result
     }
