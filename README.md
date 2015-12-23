@@ -23,7 +23,7 @@ Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username
  2. Run
  
  ```powershell
- PS:>[HueBridge]::FindHueBridge()
+ [HueBridge]::FindHueBridge()
  ```
  3. Your computer will perform a search. The search is synchronous (means you need to wait for it to complete) and takes about 15-20 seconds to finish. The method finds all UPnP devices described as "Hue" on your LAN (Subnet) and returns those as a list, giving you the IP of your bridge. One might argue this should happen by default, after all, the Hue Bridge IP address may change in a DHCP network. Two reasons why I don't do this automagically: 1. Who says this is the only Hue Bridge in the network? 2. The method call is a blocking action and I've not tried to get PowerShell to do stuff asynchronously with a callback yet.
  4. Instantiate a `[HueBridge]` class using your discovered (or known) Bridge IP address. Substitue your own bridge's IP address obviously.
@@ -127,4 +127,8 @@ $Light.SetHueLight($Light.Brightness, 370)
 
 # Any questions?
 No? Good.
+<<<<<<< HEAD
 Seriously though, this is a starter for 10 kind of thing for now. It will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
+=======
+Seriously though, this is a starter for 10 kind of thing for now, it will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
+>>>>>>> origin/master
