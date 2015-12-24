@@ -126,9 +126,5 @@ $Light.SetHueLight($Light.Brightness, 370)
 ```  
 
 # Any questions?
-No? Good.
-<<<<<<< HEAD
-Seriously though, this is a starter for 10 kind of thing for now. It will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
-=======
-Seriously though, this is a starter for 10 kind of thing for now, it will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
->>>>>>> origin/master
+No? Good. Seriously though, this is a starter for 10 kind of thing for now. It will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
+
