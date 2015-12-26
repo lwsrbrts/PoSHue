@@ -55,7 +55,7 @@ Class HueBridge {
 
     [array] GetLightNames() {
         If (!($this.APIKey)) {
-            Return "Need the API Key for this operation."
+            Throw "This operation requires the APIKey property to be set."
         }
 
         $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
@@ -70,7 +70,7 @@ Class HueBridge {
 
     [PSCustomObject] GetAllLights() {
         If (!($this.APIKey)) {
-            Return "Need the API Key for this operation."
+            Throw "This operation requires the APIKey property to be set."
         }
         $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         Return $Result
