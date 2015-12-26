@@ -84,6 +84,7 @@ Class HueLight {
     ##############
 
     [string] $Light
+    [string] $LightFriendlyName
     [ipaddress] $BridgeIP
     [string] $APIKey
     [string] $JSON
@@ -98,6 +99,7 @@ Class HueLight {
     ###############
 
     HueLight([string] $Name, [ipaddress] $Bridge, [string] $API) {
+        $this.LightFriendlyName =  $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
         $this.Light = $this.GetHueLight($Name)
@@ -114,7 +116,12 @@ Class HueLight {
         $HueData = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         $Lights = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         $this.Light = $Lights | Where-Object {$_.Value.Name -match $Name}  | Select Name -ExpandProperty Name
-        Return $this.Light
+        If ($this.Light) {
+            Return $this.Light
+        }
+        Else {
+            Throw "No light name matching `"$Name`" was found in the Hue Bridge `"$($this.BridgeIP)`".`r`nTry using [HueBridge]::GetLightNames() to get a full list of light names in this Hue Bridge."
+        }
     }
 
     hidden [void] GetStatus() {
@@ -124,7 +131,9 @@ Class HueLight {
         $this.Brightness = $Status.state.bri
         $this.Hue = $Status.state.hue
         $this.Saturation = $Status.state.sat
-        $this.ColourTemperature = $Status.state.ct
+        If ($Status.state.ct) {
+            $this.ColourTemperature = $Status.state.ct
+        }
     }
 
     [void] SwitchHueLight() {
@@ -156,7 +165,14 @@ Class HueLight {
 
     # Importance of colour settings: XY > CT > HS
     # I don't have an XY method as it seems illogical.
-    [void] SetHueLight([int] $Brightness, [int] $ColourTemperature) {
+    [string] SetHueLight([int] $Brightness, [int] $ColourTemperature) {
+        If (!($this.On)) {
+            Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness and/or Colour Temperature."
+        }
+
+        If (!($this.ColourTemperature)) {
+            Throw "Light named `"$($this.LightFriendlyName)`" does not hold the `"ct`" setting or it could not be read properly during`r`nobject instantiation. Does it support Colour Temperature? If so, please report a bug."
+        }
         $this.Brightness = $Brightness
         $this.ColourTemperature = $ColourTemperature
 
@@ -165,9 +181,27 @@ Class HueLight {
         $Settings.Add("ct", $this.ColourTemperature)
 
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the brightness or colour temperature."}
     }
 
-    [void] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation) {
+    [string] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation) {
+        If (!($this.On)) {
+            Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Hue, Saturation and/or Brightness."
+        }
+
         # Allows imposing the ValidateRange limits so it seems advisable to do this
         $this.Brightness = $Brightness
         $this.Hue = $Hue
@@ -181,6 +215,23 @@ Class HueLight {
         $Settings.Add("sat", $this.Saturation)
 
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+
+        # Handle errors - incomplete in reality but should suffice for now.
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Hue, Saturation or Brightness."}
+
     }
 
 }

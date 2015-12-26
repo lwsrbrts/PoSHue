@@ -71,7 +71,12 @@ $Light.SwitchHueLight("On")
 $Light.SwitchHueLight("Off")
 
 # Set the Brightness to 100, keep the existing hue and saturation
-$Light.SetHueLight(100, $Light.Hue, $Light.Saturation)
+Try { 
+    $Light.SetHueLight(100, $Light.Hue, $Light.Saturation)
+}
+Catch {
+    "Wasn't able to set the light HSB $_"
+}
 
 # Set the Brightness to 50, keep the existing colour temp
 $Light.SetHueLight(50, $Light.ColourTemperature)
