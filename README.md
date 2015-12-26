@@ -61,6 +61,12 @@ Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username
  ```powershell
  $Bridge.GetAllLights()
  ```
+ 
+ 15. If you just want to turn all Hue Lights on or off (all lights will become the same state). Use:
+  ```powershell
+ $Bridge.ToggleAllLights("On")
+ $Bridge.ToggleAllLights("Off")
+  ```
 
 ---
 
@@ -78,14 +84,16 @@ There are obviously some restrictions on what you can set and these restrictions
  PS:>$Light
  
  Light             : 4
+ LightFriendlyName : Hue go 1
  BridgeIP          : 192.168.1.12
  APIKey            : 38cbd1cbcac542f9c26ad393739b7
  JSON              : 
  On                : True
- Brightness        : 106
- Hue               : 8590
- Saturation        : 121
- ColourTemperature : 343
+ Brightness        : 102
+ Hue               : 8378
+ Saturation        : 144
+ ColourTemperature : 370
+ ColourMode        : ct
  
  ```
  3. As part of instantiating/constructing the `$Light` object, the `[HueLight]` class gets the existing *state* of the light from the Bridge. It sets values like **On** (whether the light is on or off), **Brightness**, **Hue**, **Saturation** and **Colour Temperature**. When you change these values using the methods described below, the object's properties are also updated and you can use these as you see fit.

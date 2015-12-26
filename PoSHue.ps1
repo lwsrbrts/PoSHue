@@ -1,5 +1,5 @@
 Enum LightState {
-    # Currently unused - wondering how to.
+    # Defines a state of the light for methods that can specify the state of the light to On or Off.
     On = $True
     Off = $False
 }
@@ -76,20 +76,15 @@ Class HueBridge {
         Return $Result
     }
 
-    [void] ToggleAllLights() {
-        # A simple toggle affecting all lights in the system. If on, turn off. If off, turn on.
-        
-        $Group = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/0"
+    [void] ToggleAllLights([LightState] $State) {
+        # A simple toggle affecting all lights in the system.
         $Settings = @{}
-
-        Switch ($Group.action.on) {
-            $false {$Settings.Add("on", $true)}
-            $true {$Settings.Add("on", $false)}
-            default {$Settings.Add("on", $false)}
+        Switch ($State) {
+            On  {$Settings.Add("on", $true)}
+            Off {$Settings.Add("on", $false)}
         }
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/0/action" -Body (ConvertTo-Json $Settings)
     }
-
 }
 
 Class HueLight {
@@ -167,7 +162,7 @@ Class HueLight {
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
-    [void] SwitchHueLight([string] $State) { # An overload for SwitchHueLight
+    [void] SwitchHueLight([LightState] $State) { # An overload for SwitchHueLight
     # Set the state of the light. Always does what you give it, irrespective of the current setting.
         Switch ($State) {
             On  {$this.On = $true}
