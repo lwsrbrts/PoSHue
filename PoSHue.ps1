@@ -1,7 +1,21 @@
 Enum LightState {
-    # Defines a state of the light for methods that can specify the state of the light to On or Off.
+    # Defines a state of the light for methods that can
+    # specify the state of the light to On or Off.
     On = $True
     Off = $False
+}
+
+Enum ColourMode {
+    # Defines the colour modes that can be set on the light.
+    xy
+    ct
+    hs
+}
+
+Enum AlertType {
+    none
+    select
+    lselect
 }
 
 Class HueBridge {
@@ -103,7 +117,8 @@ Class HueLight {
     [ValidateRange(0,65535)][int] $Hue
     [ValidateRange(1,254)][int] $Saturation
     [ValidateRange(153,500)][int] $ColourTemperature
-    [ValidateSet("ct", "xy", "hs")] $ColourMode
+    [ColourMode] $ColourMode
+    [AlertType] $AlertEffect
     
     ###############
     # CONSTRUCTOR #
@@ -117,12 +132,12 @@ Class HueLight {
         $this.GetStatus()
     }
 
-
     ###########
     # METHODS #
     ###########
 
     hidden [int] GetHueLight([string] $Name) {
+        If (!($Name)) { Throw "No light name was specified." }
         # Change the named light in to the integer used by the bridge. We use this throughout.
         $HueData = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         $Lights = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
@@ -146,6 +161,7 @@ Class HueLight {
         If ($Status.state.ct) {
             $this.ColourTemperature = $Status.state.ct
         }
+        $this.AlertEffect = $Status.state.alert
     }
 
     [void] SwitchHueLight() {
@@ -246,6 +262,14 @@ Class HueLight {
         }
         Else {Throw "An error occurred setting the Hue, Saturation or Brightness."}
 
+    }
+
+    [void] Breathe([AlertType] $AlertEffect) {
+        $this.AlertEffect = $AlertEffect
+        $Settings = @{}
+        $Settings.Add("alert", [string] $this.AlertEffect)
+
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
 }

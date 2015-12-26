@@ -2,8 +2,8 @@
 
 # Importing the classes - verb is wrong but hey, it works
 # and I can get stuff out of the class file.
-#Import-Module ".\PoSHue.ps1"
-Import-Module "$PSScriptRoot\PoSHue.ps1"
+Import-Module ".\PoSHue.ps1"
+#Import-Module "$PSScriptRoot\PoSHue.ps1"
 
 # Hue Bridge IP address
 # How you get this is up to you. Try your router.
@@ -87,6 +87,12 @@ $Light.SetHueLight(50, $Light.ColourTemperature)
 
 # Set the Brightness to 100, set colour temp to 370
 $Light.SetHueLight(100, 500)
+
+# Perform a single Breathe action.
+$Light.Breathe("select")
+
+# Breathe for 15 seconds.
+$Light.Breathe("lselect")
 
 # Just see what the object properties are.
 $Light

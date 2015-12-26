@@ -119,6 +119,12 @@ There are obviously some restrictions on what you can set and these restrictions
   ```powershell
   $Light.SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation)
   ```
+  * Have the light perform a **Breathe** action. From Philips' own API documentation:
+>The alert effect, which is a temporary change to the bulb’s state. This can take one of the following values:<br/>"none" – The light has no alert effect.<br/>"select" – The light performs one breathe cycle.<br/>"lselect" – The light performs breathe cycles for 15 seconds or until an "alert": "none" command is received.<br/>Note that this contains the last alert sent to the light and **not** its current state. i.e. After the breathe cycle has finished the bridge does not reset the alert to "none".
+ 
+  ```powershell
+  $Light.Breathe([AlertType] $AlertEffect)
+  ```
 
 To retain the same settings for one or more property such as Brightness, just use the existing property of the object and essentially, set it again!
 
