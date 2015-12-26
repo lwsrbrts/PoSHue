@@ -75,6 +75,21 @@ Class HueBridge {
         $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         Return $Result
     }
+
+    [void] ToggleAllLights() {
+        # A simple toggle affecting all lights in the system. If on, turn off. If off, turn on.
+        
+        $Group = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/0"
+        $Settings = @{}
+
+        Switch ($Group.action.on) {
+            $false {$Settings.Add("on", $true)}
+            $true {$Settings.Add("on", $false)}
+            default {$Settings.Add("on", $false)}
+        }
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/0/action" -Body (ConvertTo-Json $Settings)
+    }
+
 }
 
 Class HueLight {
@@ -93,6 +108,7 @@ Class HueLight {
     [ValidateRange(0,65535)][int] $Hue
     [ValidateRange(1,254)][int] $Saturation
     [ValidateRange(153,500)][int] $ColourTemperature
+    [ValidateSet("ct", "xy", "hs")] $ColourMode
     
     ###############
     # CONSTRUCTOR #
@@ -131,6 +147,7 @@ Class HueLight {
         $this.Brightness = $Status.state.bri
         $this.Hue = $Status.state.hue
         $this.Saturation = $Status.state.sat
+        $this.ColourMode = $Status.state.colormode
         If ($Status.state.ct) {
             $this.ColourTemperature = $Status.state.ct
         }
@@ -182,6 +199,7 @@ Class HueLight {
 
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
         If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
             Return "Success"
         }
         ElseIf ($Result.error -ne $null) {
@@ -218,6 +236,7 @@ Class HueLight {
 
         # Handle errors - incomplete in reality but should suffice for now.
         If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
             Return "Success"
         }
         ElseIf ($Result.error -ne $null) {

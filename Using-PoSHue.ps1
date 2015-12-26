@@ -51,6 +51,10 @@ $Bridge.GetAllLights()
 # Returns an [array] object of the light's names.
 $Bridge.GetLightNames()
 
+# Turns all lights on the bridge on, or off, depending on their
+# current state.
+$Bridge.ToggleAllLights()
+
 ####################
 # [HueLight] Class #
 ####################
@@ -82,7 +86,7 @@ Catch {
 $Light.SetHueLight(50, $Light.ColourTemperature)
 
 # Set the Brightness to 100, set colour temp to 370
-$Light.SetHueLight(100, 370)
+$Light.SetHueLight(100, 500)
 
 # Just see what the object properties are.
 $Light
