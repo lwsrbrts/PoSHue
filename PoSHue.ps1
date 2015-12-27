@@ -75,11 +75,6 @@ Class HueBridge {
         $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights"
         $Lights = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         Return $Lights.Value.Name
-
-        # The below is not necessary.
-        # PoSH extracts the values from the array when an index isn't specified, it seems.
-        # Something new every day.
-        # Return $Lights | Select-Object @{Name="Hue Light Names"; Expression = {$_.Value.Name}}
     }
 
     [PSCustomObject] GetAllLights() {
@@ -115,7 +110,7 @@ Class HueLight {
     [bool] $On
     [ValidateRange(1,254)][int] $Brightness
     [ValidateRange(0,65535)][int] $Hue
-    [ValidateRange(1,254)][int] $Saturation
+    [ValidateRange(0,254)][int] $Saturation
     [ValidateRange(153,500)][int] $ColourTemperature
     [ColourMode] $ColourMode
     [AlertType] $AlertEffect
@@ -159,7 +154,19 @@ Class HueLight {
         $this.Saturation = $Status.state.sat
         $this.ColourMode = $Status.state.colormode
         If ($Status.state.ct) {
-            $this.ColourTemperature = $Status.state.ct
+            <#
+            My Hue Go somehow got itself to a colour temp of "15" which is supposed 
+            to be impossible. The [ValidateRange] of Colour Temp meant it wasn't possible
+            to instantiate the [HueLight] class because it was outside the valid range of
+            values accepted by the property. Makes sense but now means I need to handle
+            possible impossible values. Added to the fact that this property might not
+            exist on lights that don't support colour temperature, its a bit of a pain.
+            #>
+            Switch ($Status.state.ct) {
+                {($Status.state.ct -lt 153)} {$this.ColourTemperature = 153; break}
+                {($Status.state.ct -gt 500)} {$this.ColourTemperature = 500; break}
+                default {$this.ColourTemperature = $Status.state.ct}
+            }
         }
         $this.AlertEffect = $Status.state.alert
     }
@@ -194,6 +201,7 @@ Class HueLight {
     # Importance of colour settings: XY > CT > HS
     # I don't have an XY method as it seems illogical.
     [string] SetHueLight([int] $Brightness, [int] $ColourTemperature) {
+    # Set the brightness and colour temperature of the light.
         If (!($this.On)) {
             Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness and/or Colour Temperature."
         }
@@ -227,6 +235,7 @@ Class HueLight {
     }
 
     [string] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation) {
+    # Set the brightness, hue and saturation values of the light.
         If (!($this.On)) {
             Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Hue, Saturation and/or Brightness."
         }
@@ -261,15 +270,14 @@ Class HueLight {
             Throw $Output
         }
         Else {Throw "An error occurred setting the Hue, Saturation or Brightness."}
-
     }
 
     [void] Breathe([AlertType] $AlertEffect) {
+    # Perform a breathe action on the light. Limited input values accepted, "none", "select", "lselect".
         $this.AlertEffect = $AlertEffect
         $Settings = @{}
         $Settings.Add("alert", [string] $this.AlertEffect)
 
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
-
 }
