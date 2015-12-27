@@ -1,12 +1,13 @@
 # Don't run this whole script blindly, the commands here are examples.
 
-# Importing the classes - verb is wrong but hey, it works
-# and I can get stuff out of the class file.
+# Import the [HueBridge] and [HueLight] classes
+# so you can interact with them in your script.
 Import-Module ".\PoSHue.ps1"
 #Import-Module "$PSScriptRoot\PoSHue.ps1"
 
 # Hue Bridge IP address
-# How you get this is up to you. Try your router.
+# You could use [HueBridge]::FindHueBridge() if you don't know your
+# Hue Bridge IP address.
 $Endpoint = "192.168.1.12"
 
 # The APIKey/username created on the bridge
