@@ -97,7 +97,7 @@ There are obviously some restrictions on what you can set and these restrictions
  
  ```
  3. As part of instantiating/constructing the `$Light` object, the `[HueLight]` class gets the existing *state* of the light from the Bridge. It sets values like **On** (whether the light is on or off), **Brightness**, **Hue**, **Saturation** and **Colour Temperature**. When you change these values using the methods described below, the object's properties are also updated and you can use these as you see fit.
- 4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below:
+ 4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below but their use is perhaps better understood from the `Using-PoSHue.ps1` file:
   * Toggle the light on or off:
  
  ```powershell
