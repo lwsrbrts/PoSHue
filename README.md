@@ -18,7 +18,7 @@ Copy the PoSHue.ps1 file to the same folder as your script (or somewhere else if
 ----
 
 #### HueBridge Class
-Let's start with the ```[HueBridge]``` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the `[HueLight]` class later.
+Let's start with the `[HueBridge]` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the `[HueLight]` class later.
  1. Get the IP address of your Bridge. The `[HueBridge]` class contains a static method (this means you can call it without instantiating the class) called `.FindHueBridge()`.
  2. Run
  
@@ -76,7 +76,7 @@ There are obviously some restrictions on what you can set and these restrictions
  1. Instantiate the `[HueLight]` class, providing the necessary details. Obviously you can specify these as variables if you like.
  
  ```powershell
- $Lamp = [HueLight]::New('Hue go 1', '192.168.1.12', '23343462grg456brergd56')
+ $Lamp = [HueLight]::New('Hue go 1', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
  ```
  2. Call the object to see its properties.
  
@@ -121,7 +121,7 @@ There are obviously some restrictions on what you can set and these restrictions
   ```
   * Have the light perform a **Breathe** action. From Philips' own API documentation:
 
-> The alert effect, which is a temporary change to the bulb’s state. This can take one of the following values:<br/>"none" – The light has no alert effect.<br/>"select" – The light performs one breathe cycle.<br/>"lselect" – The light performs breathe cycles for 15 seconds or until an "alert": "none" command is received.<br/>Note that this contains the last alert sent to the light and **not** its current state. i.e. After the breathe cycle has finished the bridge does not reset the alert to "none".
+  > The alert effect, which is a temporary change to the bulb’s state. This can take one of the following values:<br/>"none" – The light has no alert effect.<br/>"select" – The light performs one breathe cycle.<br/>"lselect" – The light performs breathe cycles for 15 seconds or until an "alert": "none" command is received.<br/>Note that this contains the last alert sent to the light and **not** its current state. i.e. After the breathe cycle has finished the bridge does not reset the alert to "none".
  
   ```powershell
   $Light.Breathe([AlertType] $AlertEffect)
