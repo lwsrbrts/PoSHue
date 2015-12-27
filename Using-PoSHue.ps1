@@ -72,10 +72,10 @@ $Light
 
 # Toggle the light on or off
 $Light.SwitchHueLight()
-$Light.SwitchHueLight("On")
 $Light.SwitchHueLight("Off")
+$Light.SwitchHueLight("On")
 
-# Set the Brightness to 100, keep the existing hue and saturation
+# In a Try Catch block, set the Brightness to 100, keep the existing hue and saturation
 Try { 
     $Light.SetHueLight(100, $Light.Hue, $Light.Saturation)
 }
@@ -83,11 +83,14 @@ Catch {
     "Wasn't able to set the light HSB $_"
 }
 
+# Set the light to 100 brightness (out of 254), 25500 hue (Green), 254 saturation (Maximum Colour)
+$Light.SetHueLight(100, 25500, 254)
+
 # Set the Brightness to 50, keep the existing colour temp
 $Light.SetHueLight(50, $Light.ColourTemperature)
 
 # Set the Brightness to 100, set colour temp to 370
-$Light.SetHueLight(100, 500)
+$Light.SetHueLight(100, 370)
 
 # Perform a single Breathe action.
 $Light.Breathe("select")
