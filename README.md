@@ -13,7 +13,7 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
 ---
 
 ### Using it
-Copy the PoSHue.ps1 file to the same folder as your script (or somewhere else if you want!) and use Import-Module on its location. See Using-PoSHue.ps1 for an example of doing that.
+Copy the `PoSHue.ps1` file to the same folder as your script (or somewhere else if you want!) and use `Import-Module` on its location. See `Using-PoSHue.ps1` for an example of doing that.
 
 ----
 
