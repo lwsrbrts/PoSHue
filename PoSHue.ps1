@@ -13,6 +13,7 @@ Enum ColourMode {
 }
 
 Enum AlertType {
+    # Defines the accepted values when invoking the Breathe method.
     none
     select
     lselect
@@ -24,7 +25,7 @@ Class HueBridge {
     ##############
 
     [ipaddress] $BridgeIP
-    [string] $APIKey
+    [ValidateLength(20,50)][string] $APIKey
 
     ###############
     # CONSTRUCTOR #
@@ -55,7 +56,7 @@ Class HueBridge {
         $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api" -Body '{"devicetype":"PoSHue#PowerShell Hue"}'
         
         If ($Result[0].error) {
-            Return $Result[0].error.description
+            Throw $Result[0].error.description
         }
         ElseIf ($Result[0].success) {
             # Assign the API Key and return it.
@@ -63,7 +64,7 @@ Class HueBridge {
             Return $Result[0].success.username
         }
         Else {
-            Return "There was an error.`r`n$Result"
+            Throw "There was an error.`r`n$Result"
         }
     }
 
@@ -102,11 +103,11 @@ Class HueLight {
     # PROPERTIES #
     ##############
 
-    [string] $Light
-    [string] $LightFriendlyName
+    [ValidateLength(1,2)][string] $Light
+    [ValidateLength(2,80)][string] $LightFriendlyName
     [ipaddress] $BridgeIP
-    [string] $APIKey
-    [string] $JSON
+    [ValidateLength(20,50)][string] $APIKey
+    [ValidateLength(1,2000)][string] $JSON
     [bool] $On
     [ValidateRange(1,254)][int] $Brightness
     [ValidateRange(0,65535)][int] $Hue
@@ -148,6 +149,7 @@ Class HueLight {
     hidden [void] GetStatus() {
         # Get the current values of the State, Hue, Saturation, Brightness and Colour Temperatures
         $Status = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)"
+        
         $this.On = $Status.state.on
         $this.Brightness = $Status.state.bri
         $this.Hue = $Status.state.hue
@@ -160,7 +162,7 @@ Class HueLight {
             to instantiate the [HueLight] class because it was outside the valid range of
             values accepted by the property. Makes sense but now means I need to handle
             possible impossible values. Added to the fact that this property might not
-            exist on lights that don't support colour temperature, its a bit of a pain.
+            exist on lights that don't support colour temperature, it's a bit of a pain.
             #>
             Switch ($Status.state.ct) {
                 {($Status.state.ct -lt 153)} {$this.ColourTemperature = 153; break}
