@@ -72,7 +72,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
 
 #### HueLight Class
 The HueLight class allows you to set properties of a light (the interesting stuff!) like Brightness, Hue & Saturation and Colour Temperature. When you instantiate the `[HueLight]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the name of the Hue Light you want to control.
-There are obviously some restrictions on what you can set and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware. You could obviously change the ValidateRange but the lights won't accept a value outside these anyway so you needn't bother.
+There are obviously some restrictions on what values you can set for the light and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware rather than me, I just repeat those limits within the code.
  1. Instantiate the `[HueLight]` class, providing the necessary details. Obviously you can specify these as variables if you like.
  
  ```powershell
