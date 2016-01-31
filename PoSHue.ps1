@@ -95,6 +95,14 @@ Class HueBridge {
         }
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/0/action" -Body (ConvertTo-Json $Settings)
     }
+
+    [void] SetHueScene([string] $SceneID) { 
+        # Set a Hue Scene (collection of lights and their settings)   
+        $Settings = @{}
+        $Settings.Add("scene", $SceneID)
+
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/0/action" -Body (ConvertTo-Json $Settings)
+    }
 }
 
 Class HueLight {
