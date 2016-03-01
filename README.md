@@ -76,7 +76,7 @@ There are obviously some restrictions on what values you can set for the light a
  1. Instantiate the `[HueLight]` class, providing the necessary details. Obviously you can specify these as variables if you like.
  
  ```powershell
- $Lamp = [HueLight]::New('Hue go 1', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
+ $Light = [HueLight]::New('Hue go 1', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
  ```
  2. Call the object to see its properties.
  
