@@ -241,7 +241,7 @@ Class HueLight {
             }
             Throw $Output
         }
-        Else {Throw "An error occurred setting the brightness or colour temperature."}
+        Else {Throw "An error occurred setting the Brightness or Colour Temperature."}
     }
 
     [string] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation) {
@@ -289,5 +289,79 @@ Class HueLight {
         $Settings.Add("alert", [string] $this.AlertEffect)
 
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+    }
+
+    [string] SetHueLightTransition([int] $Brightness, [int] $ColourTemperature, [uint16] $TransitionTime) {
+    # Set the brightness and colour temperature of the light.
+        If (!($this.On)) {
+            Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness and/or Colour Temperature."
+        }
+
+        If (!($this.ColourTemperature)) {
+            Throw "Light named `"$($this.LightFriendlyName)`" does not hold the `"ct`" setting or it could not be read properly during`r`nobject instantiation. Does it support Colour Temperature? If so, please report a bug."
+        }
+        $this.Brightness = $Brightness
+        $this.ColourTemperature = $ColourTemperature
+
+        $Settings = @{}
+        $Settings.Add("bri", $this.Brightness)
+        $Settings.Add("ct", $this.ColourTemperature)
+        $Settings.Add("transitiontime", $TransitionTime)
+
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Brightness or Colour Temperature."}
+    }
+
+    [string] SetHueLightTransition([int] $Brightness, [int] $Hue, [int] $Saturation, [uint16] $TransitionTime) {
+    # Set the brightness, hue and saturation values of the light.
+        If (!($this.On)) {
+            Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Hue, Saturation and/or Brightness."
+        }
+
+        # Allows imposing the ValidateRange limits so it seems advisable to do this
+        $this.Brightness = $Brightness
+        $this.Hue = $Hue
+        $this.Saturation = $Saturation
+
+        # Feels a bit verbose to be updating our object data then re-constructing it for use... what to do...what to do...
+
+        $Settings = @{}
+        $Settings.Add("bri", $this.Brightness)
+        $Settings.Add("hue", $this.Hue)
+        $Settings.Add("sat", $this.Saturation)
+        $Settings.Add("transitiontime", $TransitionTime)
+
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+
+        # Handle errors - incomplete in reality but should suffice for now.
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Hue, Saturation or Brightness."}
     }
 }
