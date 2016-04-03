@@ -23,49 +23,49 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  2. Run
  
  ```powershell
- [HueBridge]::FindHueBridge()
+ PS C:\>[HueBridge]::FindHueBridge()
  ```
  3. Your computer will perform a search. The search is synchronous (means you need to wait for it to complete) and takes about 15-20 seconds to finish. The method finds all UPnP devices described as "Hue" on your LAN (Subnet) and returns those as a list, giving you the IP of your bridge. One might argue this should happen by default, after all, the Hue Bridge IP address may change in a DHCP network. Two reasons why I don't do this automagically: 1. Who says this is the only Hue Bridge in the network? 2. The method call is a blocking action and I've not tried to get PowerShell to do stuff asynchronously with a callback yet.
  4. Instantiate a `[HueBridge]` class using your discovered (or known) Bridge IP address. Substitue your own bridge's IP address obviously.
  
  ```powershell
- $Bridge = [HueBridge]::New('192.168.1.12')
+ PS C:\>$Bridge = [HueBridge]::New('192.168.1.12')
  ```
  5. Get the properties of the Bridge object.
  
  ```powershell
- $Bridge
+ PS C:\>$Bridge
  ```
  6. You'll see just the IP address property for now.
  7. Get a new APIKey (username) for the bridge. This is what you use to authenticate with the bridge to get and set information about the lights. The only way to get the key is to press the link button on your bridge and then ask for an APIKey/username.
  8. Press the link button on the bridge then run:
  
  ```powershell
- $Bridge.GetNewAPIKey()
+ PS C:\>$Bridge.GetNewAPIKey()
  ```
  9. You should get a string of digits back. Record these for further use (with the `[HueLight]` class). Pressing the link button on the Bridge might get tedious! You're automating, remember. :)
  10. Now that you have an APIKey/username stored in your bridge object, go ahead and get a list of the lights on the Bridge using:
  
  ```powershell
- $Bridge.GetLightNames()
+ PS C:\>$Bridge.GetLightNames()
  ```
  11. You should see a list (an array) of lights registered to the bridge. The Bridge uses numbers to refer to the lights - we humans aren't great at associating numbers with objects so I use the names of the lights. The `[HueLight]` class also uses names instead of numbers.
  12. If you call `$Bridge` again by itself, you'll see the `APIKey` property there too. Remember, save this somewhere.
  13. If you already have an APIKey/username, you can instantiate the `[HueBridge]` class with that in order to use the `.GetLightNames()` method to get the names of the lights on the bridge. Something like: 
  
  ```powershell
- $Bridge = [HueBridge]::New('192.168.1.12', '23343462grg456brergd56')
+ PS C:\>$Bridge = [HueBridge]::New('192.168.1.12', '23343462grg456brergd56')
  ```
  14. If you are struggling with something or want to get an unabashed set of data (as a PowerShell `[PSObject]`) about your lights from the bridge, use:
  
  ```powershell
- $Bridge.GetAllLights()
+ PS C:\>$Bridge.GetAllLights()
  ```
  
  15. If you just want to turn all Hue Lights on or off (all lights will become the same state). Use:
   ```powershell
- $Bridge.ToggleAllLights("On")
- $Bridge.ToggleAllLights("Off")
+ PS C:\>$Bridge.ToggleAllLights("On")
+ PS C:\>$Bridge.ToggleAllLights("Off")
   ```
 
 ---
@@ -76,17 +76,17 @@ There are obviously some restrictions on what values you can set for the light a
  1. Instantiate the `[HueLight]` class, providing the necessary details. Obviously you can specify these as variables if you like.
  
  ```powershell
- $Light = [HueLight]::New('Hue go 1', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
+ PS C:\>$Light = [HueLight]::New('Hue go 1', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
  ```
  2. Call the object to see its properties.
  
  ```powershell
- PS:>$Light
+ PS C:\>$Light
  
  Light             : 4
  LightFriendlyName : Hue go 1
  BridgeIP          : 192.168.1.12
- APIKey            : 38cbd1cbcac542f9c26ad393739b7
+ APIKey            : 38abd1cbcac542f9a26ad393739a7
  JSON              : 
  On                : True
  Brightness        : 102
@@ -101,30 +101,35 @@ There are obviously some restrictions on what values you can set for the light a
   * Toggle the light on or off:
  
  ```powershell
- $Light.SwitchHueLight()
+ PS C:\>$Light.SwitchHueLight()
  ```
   * Set the state of the light:
  
  ```powershell
- $Light.SwitchHueLight("On")
- $Light.SwitchHueLight("Off")
+ PS C:\>$Light.SwitchHueLight("On")
+ PS C:\>$Light.SwitchHueLight("Off")
  ```
-  * Specify the Brightness and/or Colour Temperature (not all Hue Lights support colour temperature)
+  * Specify the Brightness and XY co-ordinate values - *I capitulated and included an XY method but I admit, it still means nothing to me. The conversion to get from one colour like RGB to an XY value in the correct colour Gamut for a specific model is, frankly, painful and beyond me. I'm working on an RGB to XY conversion method that I am hoping to include in this project. I'm using somebody else's conversion process written in JavaScript and converting that to PowerShell so it will take time.*
+  
+ ```powershell
+ PS C:\>$Light.SetHueLight([int] $Brightness, [float] $X, [float] $Y)
+ ```
+   * Specify the Brightness and/or Colour Temperature (not all Hue Lights support colour temperature)
  
  ```powershell
- $Light.SetHueLight([int] $Brightness, [int] $ColourTemperature)
+ PS C:\>$Light.SetHueLight([int] $Brightness, [int] $ColourTemperature)
  ``` 
   * Specify the Brightness and/or Hue and/or Saturation.
  
   ```powershell
-  $Light.SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation)
+  PS C:\>$Light.SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation)
   ```
   * Have the light perform a **Breathe** action. From Philips' own API documentation:
 
   > The alert effect, which is a temporary change to the bulb’s state. This can take one of the following values:<br/>"none" – The light has no alert effect.<br/>"select" – The light performs one breathe cycle.<br/>"lselect" – The light performs breathe cycles for 15 seconds or until an "alert": "none" command is received.<br/>Note that this contains the last alert sent to the light and **not** its current state. i.e. After the breathe cycle has finished the bridge does not reset the alert to "none".
  
   ```powershell
-  $Light.Breathe([AlertType] $AlertEffect)
+  PS C:\>$Light.Breathe([AlertType] $AlertEffect)
   ```
 
 To retain the same settings for one or more property such as Brightness, just use the existing property of the object and essentially, set it again!
@@ -132,12 +137,12 @@ To retain the same settings for one or more property such as Brightness, just us
 For example, the following command would retain the same colour temperature as already set in the object but set the brightness to 50:
 
 ```powershell
-$Light.SetHueLight(50, $Light.ColourTemperature)
+PS C:\>$Light.SetHueLight(50, $Light.ColourTemperature)
 ```
 If you then wanted to change the Colour Temperature to 370 but retain the Brightness as 50 you would do: 
 
 ```powershell
-$Light.SetHueLight($Light.Brightness, 370)
+PS C:\>$Light.SetHueLight($Light.Brightness, 370)
 ```  
 
 # Any questions?

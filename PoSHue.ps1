@@ -208,8 +208,44 @@ Class HueLight {
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
-    # Importance of colour settings: XY > CT > HS
-    # I don't have an XY method as it seems illogical.
+    ###############################################
+    # Importance of colour settings: XY > CT > HS #
+    ###############################################
+
+    ### Set an XY value ###
+    # Depends on the Gamut capability of the target Light
+    # See: http://www.developers.meethue.com/documentation/hue-xy-values
+    [string] SetHueLight([int] $Brightness, [float] $X, [float] $Y) {
+    # Set brightness and XY values.
+        If (!($this.On)) {
+            Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness and/or Colour Temperature."
+        }
+
+        $this.Brightness = $Brightness
+
+        $Settings = @{}
+        $Settings.Add("xy", @($x, $y))
+        $Settings.Add("bri", $this.Brightness)
+
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Brightness or Colour Temperature."}
+    }
+
+    ### Set a colour temperature ###
     [string] SetHueLight([int] $Brightness, [int] $ColourTemperature) {
     # Set the brightness and colour temperature of the light.
         If (!($this.On)) {
@@ -244,6 +280,7 @@ Class HueLight {
         Else {Throw "An error occurred setting the Brightness or Colour Temperature."}
     }
 
+    ### Set an HSB value ###
     [string] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation) {
     # Set the brightness, hue and saturation values of the light.
         If (!($this.On)) {
