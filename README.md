@@ -109,11 +109,36 @@ There are obviously some restrictions on what values you can set for the light a
  PS C:\>$Light.SwitchHueLight("On")
  PS C:\>$Light.SwitchHueLight("Off")
  ```
-  * Specify the Brightness and XY co-ordinate values - *I capitulated and included an XY method but I admit, it still means nothing to me. The conversion to get from one colour like RGB to an XY value in the correct colour Gamut for a specific model is, frankly, painful and beyond me. I'm working on an RGB to XY conversion method that I am hoping to include in this project. I'm using somebody else's conversion process written in JavaScript and converting that to PowerShell so it will take time.*
+  * Specify the Brightness and XY co-ordinate values - *I capitulated and included an XY method but I admit, it still means nothing to me. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is hard so I have included more detailed steps for this method.*
   
  ```powershell
  PS C:\>$Light.SetHueLight([int] $Brightness, [float] $X, [float] $Y)
  ```
+ 
+###Converting RGB to XY & Brightness.
+Here's an example of using the `[HueLight]` class to convert from RGB to XY.
+Philips' own API documentation states that the correct XY value for a Gamut C lamp such as the Hue Go is `[x:0.1649, y:0.1338]` - though I use exactly the same method of conversion and gamma correction, I get slightly different results but they aren't that far off to be completely incorrect so I believe the conversion is working as it is supposed to.
+ 
+```powershell
+$RoyalBlueRGB = [System.Drawing.Color]::FromArgb(63,104,224) # Define the RGB colour to convert from
+$RoyalBlueXYZ = $Light.RGBtoXYZ($RoyalBlueRGB) # Convert the colour with gamma correction
+$RoyalBlueXYB = $Light.xybForModel($RoyalBlueXYZ, 'GamutC') # Get the X, Y and Brightness for a model with GamutC (Hue Go)
+$RoyalBlueXYB
+<#
+Name                           Value
+----                           -----
+y                              0.1351483
+b                              182
+x                              0.1648863
+#>
+```
+
+I would now use this as follows:
+
+```powershell
+PS C:\>$Light.SetHueLight($RoyalBlue.b, $RoyalBlue.x, $RoyalBlue.y)
+```
+ 
    * Specify the Brightness and/or Colour Temperature (not all Hue Lights support colour temperature)
  
  ```powershell
