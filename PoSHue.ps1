@@ -19,6 +19,13 @@ Enum AlertType {
     lselect
 }
 
+Enum Gamut {
+    # Defines the accepted values when invoking the Breathe method.
+    GamutA
+    GamutB
+    GamutC
+}
+
 Class HueBridge {
     ##############
     # PROPERTIES #
@@ -242,7 +249,7 @@ Class HueLight {
             }
             Throw $Output
         }
-        Else {Throw "An error occurred setting the Brightness or Colour Temperature."}
+        Else {Throw "An error occurred setting the Brightness or XY colour value."}
     }
 
     ### Set a colour temperature ###
@@ -401,4 +408,174 @@ Class HueLight {
         }
         Else {Throw "An error occurred setting the Hue, Saturation or Brightness."}
     }
+
+    # Convert an RGB colour to XYZ format
+    <#
+        Don't use this straight conversion XY output to push to the light as it may be outside
+        of the light's capabilities - it won't damage the light, the light will just
+        make a bad guess. Use the output from this method and feed it through
+        .xybForModel([hashtable] $ConvertedXYZ, [hashtable] $GamutTriangle)
+        to get a colour and brightness more appropriate for your model/Gamut of luminaire.
+        Yes, this could be improved by associating the model number with a Gamut
+        triangle but this would require maintaining as often as Philips release
+        new bulbs with different capabilities.
+        For now, use the Gamut name identified from:
+        http://www.developers.meethue.com/documentation/supported-lights
+        (You need to register to see the list unfortunately)
+        If you're asking yourself, what's a Gamut?! It's the ability of a bulb
+        to reproduce a colour within the CIE colour spectrum. Some Gamuts aren't
+        as wide.
+        For example, the hue bulbs (Gamut B) are very good at showing nice whites,
+        while the LivingColors (Gamut A) are generally a bit better at colours, like
+        green and cyan. Newer models like the Hue Go and Hue LightStrips Plus use Gamut C.
+    #>
+    [hashtable] RGBtoXYZ([System.Drawing.Color] $Colour) {
+        # Set up a return value [hashtable]
+        $ret = @{}
+
+        # Convert the RGB values to 0..1 values
+        [float] $r = $Colour.R/255
+        [float] $g = $Colour.G/255
+        [float] $b = $Colour.B/255
+
+        # Gamma correction
+        [float] $red = if ($r -gt [float]0.04045) { [Math]::Pow(($r + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($r / [float]12.92) }
+        [float] $green = if ($g -gt [float]0.04045) { [Math]::Pow(($g + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($g / [float]12.92) }
+        [float] $blue = if ($b -gt [float]0.04045) { [Math]::Pow(($b + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else{ ($b / [float]12.92) }
+
+        # Convert the RGB values to XYZ using the Wide RGB D65 conversion formula
+        [float] $ret.x = $red * [float]0.664511 + $green * [float]0.154324 + $blue * [float]0.162028
+        [float] $ret.y = $red * [float]0.283881 + $green * [float]0.668433 + $blue * [float]0.047685
+        [float] $ret.z = $red * [float]0.000088 + $green * [float]0.072310 + $blue * [float]0.986039
+
+        # Create the return values
+        [float] $ret.x = $ret.x / ($ret.x + $ret.y + $ret.z)
+        [float] $ret.y = $ret.y / ($ret.x + $ret.y + $ret.z)
+        [float] $ret.z = $ret.z / ($ret.x + $ret.y + $ret.z)
+
+        Return $ret
+    }
+
+    [hashtable] GamutTriangles([Gamut] $GamutID) {
+
+        $GamutTriangles = @{
+            GamutA = @{
+                Red = @{ x = 0.704; y = 0.296 }
+                Green = @{ x = 0.2151; y = 0.7106 }
+                Blue = @{ x = 0.138; y = 0.08 }
+            }
+            GamutB = @{
+                Red = @{ x = 0.675; y = 0.322 }
+                Green = @{ x = 0.409; y = 0.518 }
+                Blue = @{ x = 0.167; y = 0.04 }
+            }
+            GamutC = @{
+                Red = @{ x = 0.692; y = 0.308 }
+                Green = @{ x = 0.17; y = 0.7 }
+                Blue = @{ x = 0.153; y = 0.048 }
+            }
+        }
+
+        Return $GamutTriangles.$GamutID
+    }
+
+
+    hidden [float] crossProduct($p1, $p2) {
+            Return [float]($p1.x * $p2.y - $p1.y * $p2.x)
+    }
+
+    hidden [bool] isPointInTriangle($p, [psobject]$triangle) {
+        $red = $triangle.Red
+        $green = $triangle.Green
+        $blue = $triangle.Blue
+    
+        $v1 = @{
+            x = $green.x - $red.x
+            y = $green.y - $red.y
+        }
+        $v2 = @{
+            x = $blue.x - $red.x
+            y = $blue.y - $red.y
+        }
+        $q = @{
+            x = $p.x - $red.x
+            y = $p.y - $red.y
+        }
+
+        $s = ($this.crossProduct($q, $v2)) / ($this.crossProduct($v1, $v2))
+        $t = ($this.crossProduct($v1, $q)) / ($this.crossProduct($v1, $v2))
+        Return ($s -ge [float]0.0) -and ($t -ge [float]0.0) -and ($s + $t -le [float]1.0)
+    }
+
+    hidden [hashtable] closestPointOnLine($a, $b, $p) {
+        $ap = @{
+            x = $p.x - $a.x
+            y = $p.y - $a.y
+        }
+        $ab = @{
+            x = $b.x - $a.x
+            y = $b.y - $a.y
+        }
+        [float] $ab2 = $ab.x * $ab.x + $ab.y * $ab.y
+        [float] $ap_ab = $ap.x * $ab.x + $ap.y * $ab.y
+        [float] $t = $ap_ab / $ab2
+    
+        if ($t -lt [float]0.0) {
+            $t = [float]0.0;
+        }
+        elseif ($t -gt [float]1.0) {
+            $t = [float]1.0;
+        }
+
+        return @{
+            x = $a.x + $ab.x * $t
+            y = $a.y + $ab.y * $t
+        }
+    }
+
+    hidden [float] distance($p1, $p2) {
+        [float] $dx = $p1.x - $p2.x
+        [float] $dy = $p1.y - $p2.y
+        [float] $dist = [Math]::Sqrt($dx * $dx + $dy * $dy)
+        return $dist
+    }
+
+    [hashtable] xyForModel($xy, $Gamut) {
+        $triangle = $this.GamutTriangles($Gamut)
+        If ($this.isPointInTriangle($xy, $triangle)) {
+            Return @{
+                x = $xy.x
+                y = $xy.y
+            }
+        }
+        $pAB = $this.closestPointOnLine($triangle.Red, $triangle.Green, $xy)
+        $pAC = $this.closestPointOnLine($triangle.Blue, $triangle.Red, $xy)
+        $pBC = $this.closestPointOnLine($triangle.Green ,$triangle.Blue, $xy)
+        [float] $dAB = $this.distance($xy, $pAB)
+        [float] $dAC = $this.distance($xy, $pAC)
+        [float] $dBC = $this.distance($xy, $pBC)
+        [float] $lowest = $dAB
+
+        $closestPoint = $pAB
+        If($dAC -lt $lowest) {
+            $lowest = $dAC
+            $closestPoint = $pAC
+        }
+        If($dBC -lt $lowest) {
+            $lowest = $dBC
+            $closestPoint = $pBC
+        }
+        Return $closestPoint;
+    }
+
+    [hashtable] xybForModel($ConvertedXYZ, $TargetGamut ) {
+        $xy = $this.xyForModel($ConvertedXYZ, $TargetGamut)
+        $xyb = @{
+            x = $xy.x
+            y = $xy.y
+            b = [int]($ConvertedXYZ.z*255)
+        }
+        Return $xyb
+    }
+
 }
