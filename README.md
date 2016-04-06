@@ -97,27 +97,127 @@ There are obviously some restrictions on what values you can set for the light a
  
  ```
  3. As part of instantiating/constructing the `$Light` object, the `[HueLight]` class gets the existing *state* of the light from the Bridge. It sets values like **On** (whether the light is on or off), **Brightness**, **Hue**, **Saturation** and **Colour Temperature**. When you change these values using the methods described below, the object's properties are also updated and you can use these as you see fit.
- 4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below but their use is perhaps better understood from the `Using-PoSHue.ps1` file:
-  * Toggle the light on or off:
- 
+ 4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined in the class to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below but their use is perhaps better understood from the `Using-PoSHue.ps1` file:
+
+---
+
+####Toggle the light on or off:
+ **Syntax**
  ```powershell
- PS C:\>$Light.SwitchHueLight()
+ [void] SwitchHueLight()
  ```
-  * Set the state of the light:
+ **Usage**
+```powershell
+ PS C:\>$Light.SwitchHueLight() # Returns nothing (light toggles)
+ ```
  
+ ---
+ 
+####Set the state of the light:
+ **Syntax**
+  ```powershell
+ [void] SwitchHueLight([LightState] $State)
+  ```
+
+ **Usage**
  ```powershell
- PS C:\>$Light.SwitchHueLight("On")
- PS C:\>$Light.SwitchHueLight("Off")
+ PS C:\>$Light.SwitchHueLight("On") # Returns nothing (light switches on)
+ PS C:\>$Light.SwitchHueLight("Off") # Returns nothing (light switches off)
  ```
-  * Specify the Brightness and XY co-ordinate values - *I capitulated and included an XY method but I admit, it still means nothing to me. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is hard so I have included more detailed steps for this method.*
+  ---
+ 
+####Specify the Brightness and XY co-ordinate values
+*I capitulated and included an XY method. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is hard work so I have included more detailed steps for this method in an additional section below.*
+ 
+ **Syntax:**
+ ```powershell
+ [string] SetHueLight([int] $Brightness, [float] $X, [float] $Y)
+ ```
+ 
+ **Usage:**
+ ```powershell
+ PS C:\>$Light.SetHueLight(150, 0.4123, 0.1348) # Returns [string] Success
+ ```
+---
+ 
+####Specify the Brightness and/or Colour Temperature
+Not all Hue Lights support colour temperature - the class looks for the CT attribute, if it doesn't exist, this method will return an error advising that the lights does not hold this setting and it therefore cannot be set.
+
+ **Syntax**
+ ```powershell
+ [string] SetHueLight([int] $Brightness, [int] $ColourTemperature)
+ ```
+ **Usage**
+ ```powershell
+ PS C:\>$Light.SetHueLight(150, 380) # Returns [string] Success
+ ```
+  ---
+ 
+####Specify the Brightness and/or Hue and/or Saturation
+**Syntax** 
+```powershell
+[string] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation)
+```
+**Usage**
+```powershell
+PS C:\>$Light.SetHueLight(150, 45500, 150) # Returns [string] Success
+```
+---
   
- ```powershell
- PS C:\>$Light.SetHueLight([int] $Brightness, [float] $X, [float] $Y)
- ```
- 
-###Converting RGB to XY & Brightness.
+####Perform a Breathe action
+
+From Philips' own API documentation:
+
+> The alert effect, which is a temporary change to the bulb’s state. This can take one of the following values:<br/>"none" – The light has no alert effect.<br/>"select" – The light performs one breathe cycle.<br/>"lselect" – The light performs breathe cycles for 15 seconds or until an "alert": "none" command is received.<br/>Note that this contains the last alert sent to the light and **not** its current state. i.e. After the breathe cycle has finished the bridge does not reset the alert to "none".
+
+**Syntax**
+```powershell
+[void] Breathe([AlertType] $AlertEffect)
+```
+**Usage**
+```powershell
+PS C:\>$Light.Breathe(select) # Returns nothing (the light performs a single breathe)
+```
+---
+####Change Brightness and/or colour temperature with transition
+Change the brightness and/or colour temperature over a defined period of time in milliseconds.
+**Syntax**
+```powershell
+[string] SetHueLightTransition([int] $Brightness, [int] $ColourTemperature, [uint16] $TransitionTime)
+```
+**Usage**
+```powershell
+PS C:\>$Light.SetHueLightTransition(200, 500, 60000)
+```
+---
+####Change Brightness and/or Hue and/or Saturation with transition
+Change the brightness and/or Hue and/or Saturation over a defined period of time in milliseconds.
+**Syntax**
+```powershell
+[string] SetHueLightTransition([int] $Brightness, [int] $Hue, [int] $Saturation, [uint16] $TransitionTime)
+```
+**Usage**
+```powershell
+PS C:\>$Light.SetHueLightTransition(150, 390, 30000)
+```
+---
+###Retaining current settings
+To retain the same settings for one or more property such as Brightness, just use the existing property of the object and essentially, set it again.
+
+For example, the following command would retain the same colour temperature as already set in the object but set the brightness to 50:
+
+```powershell
+PS C:\>$Light.SetHueLight(50, $Light.ColourTemperature)
+```
+If you then wanted to change the Colour Temperature to 370 but retain the Brightness as 50 you would do: 
+
+```powershell
+PS C:\>$Light.SetHueLight($Light.Brightness, 370)
+```  
+ --- 
+###Converting RGB to XY & Brightness
 Here's an example of using the `[HueLight]` class to convert from RGB to XY.
-Philips' own API documentation states that the correct XY value for a Gamut C lamp such as the Hue Go is `[x:0.1649, y:0.1338]` - though I use exactly the same method of conversion and gamma correction, I get slightly different results but they aren't that far off to be completely incorrect so I believe the conversion is working as it is supposed to.
+Philips' own API documentation states that the correct XY value for Royal Blue (RGB:63,104,224) on a Gamut C lamp such as the Hue Go is `[x:0.1649, y:0.1338]` - though I use exactly the same method of conversion and gamma correction as published on their own Philips Developer website, I get slightly different results but they aren't that far off to be completely incorrect so I believe the conversion is working as it is supposed to.
  
 ```powershell
 $RoyalBlueRGB = [System.Drawing.Color]::FromArgb(63,104,224) # Define the RGB colour to convert from
@@ -133,43 +233,12 @@ x                              0.1648863
 #>
 ```
 
-I would now use this as follows:
+I would now use this as follows - the parameters submitted cause the SetHueLight method to work out which overload to use. If the XY values are not valid floats, define them as such when submitting them if necessary as follows:
 
 ```powershell
-PS C:\>$Light.SetHueLight($RoyalBlue.b, $RoyalBlue.x, $RoyalBlue.y)
+PS C:\>$Light.SetHueLight([int] $RoyalBlue.b, [float] $RoyalBlue.x, [float]$RoyalBlue.y)
 ```
- 
-   * Specify the Brightness and/or Colour Temperature (not all Hue Lights support colour temperature)
- 
- ```powershell
- PS C:\>$Light.SetHueLight([int] $Brightness, [int] $ColourTemperature)
- ``` 
-  * Specify the Brightness and/or Hue and/or Saturation.
- 
-  ```powershell
-  PS C:\>$Light.SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation)
-  ```
-  * Have the light perform a **Breathe** action. From Philips' own API documentation:
-
-  > The alert effect, which is a temporary change to the bulb’s state. This can take one of the following values:<br/>"none" – The light has no alert effect.<br/>"select" – The light performs one breathe cycle.<br/>"lselect" – The light performs breathe cycles for 15 seconds or until an "alert": "none" command is received.<br/>Note that this contains the last alert sent to the light and **not** its current state. i.e. After the breathe cycle has finished the bridge does not reset the alert to "none".
- 
-  ```powershell
-  PS C:\>$Light.Breathe([AlertType] $AlertEffect)
-  ```
-
-To retain the same settings for one or more property such as Brightness, just use the existing property of the object and essentially, set it again!
-
-For example, the following command would retain the same colour temperature as already set in the object but set the brightness to 50:
-
-```powershell
-PS C:\>$Light.SetHueLight(50, $Light.ColourTemperature)
-```
-If you then wanted to change the Colour Temperature to 370 but retain the Brightness as 50 you would do: 
-
-```powershell
-PS C:\>$Light.SetHueLight($Light.Brightness, 370)
-```  
-
+---
 # Any questions?
 No? Good. Seriously though, this is a starter for 10 kind of thing for now. It will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
 
