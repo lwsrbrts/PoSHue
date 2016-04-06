@@ -476,7 +476,7 @@ Class HueLight {
             }
         }
 
-        Return $GamutTriangles.$GamutID
+        Return $GamutTriangles."$GamutID"
     }
 
 
