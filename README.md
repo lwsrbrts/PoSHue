@@ -217,26 +217,27 @@ PS C:\>$Light.SetHueLight($Light.Brightness, 370)
  --- 
 ###Converting RGB to XY & Brightness
 Here's an example of using the `[HueLight]` class to convert from RGB to XY.
-Philips' own API documentation states that the correct XY value for Royal Blue (RGB:63,104,224) on a Gamut C lamp such as the Hue Go is `[x:0.1649, y:0.1338]` - though I use exactly the same method of conversion and gamma correction as published on their own Philips Developer website, I get slightly different results but they aren't that far off to be completely incorrect so I believe the conversion is working as it is supposed to.
+Philips' own API documentation states that the correct XY value for Royal Blue (`RGB: 63, 104, 224`) on a Gamut C lamp such as the Hue Go is `[x:0.1649, y:0.1338]`. I have tested the conversion pretty extensively for RGB values across the range and for each of the Colour Gamuts covered by Philips' different models as defined on [this page at Philips](http://www.developers.meethue.com/documentation/hue-xy-values) and they're accurate. I have of course also tested on my own Hue Go and they're accurately reproduced.
+The following is an example of using the RGBtoXYZ (and subsequently xybForModel) method to get a smoothed value for use with your own lamp.
  
 ```powershell
-$RoyalBlueRGB = [System.Drawing.Color]::FromArgb(63,104,224) # Define the RGB colour to convert from
-$RoyalBlueXYZ = $Light.RGBtoXYZ($RoyalBlueRGB) # Convert the colour with gamma correction
-$RoyalBlueXYB = $Light.xybForModel($RoyalBlueXYZ, 'GamutC') # Get the X, Y and Brightness for a model with GamutC (Hue Go)
-$RoyalBlueXYB
+$RGB = [System.Drawing.Color]::FromArgb(63,104,224) # Define the RGB colour to convert from
+$XYZ = $Light.RGBtoXYZ($RGB) # Convert the colour with gamma correction
+$XYB = $Light.xybForModel($XYZ, 'GamutC') # Get the X, Y and Brightness for a model with GamutC (Hue Go)
+$XYB
 <#
 Name                           Value
 ----                           -----
-y                              0.1351483
-b                              182
+y                              0.13384
+b                              179
 x                              0.1648863
 #>
 ```
 
-I would now use this as follows - the parameters submitted cause the SetHueLight method to work out which overload to use. If the XY values are not valid floats, define them as such when submitting them if necessary as follows:
+I would now use this as follows - the parameters passed to SetHueLight cause the method to work out which overload to use. If the XY values are not valid floats, define them as such when submitting them if necessary as follows:
 
 ```powershell
-PS C:\>$Light.SetHueLight([int] $RoyalBlue.b, [float] $RoyalBlue.x, [float]$RoyalBlue.y)
+PS C:\>$Light.SetHueLight([int] $XYB.b, [float] $XYB.x, [float] $XYB.y) # Returns Success
 ```
 ---
 # Any questions?
