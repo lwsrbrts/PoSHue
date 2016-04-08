@@ -24,6 +24,7 @@ Enum Gamut {
     GamutA
     GamutB
     GamutC
+    GamutDefault
 }
 
 Class HueBridge {
@@ -441,21 +442,27 @@ Class HueLight {
         # Gamma correction
         [float] $red = if ($r -gt [float]0.04045) { [Math]::Pow(($r + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($r / [float]12.92) }
         [float] $green = if ($g -gt [float]0.04045) { [Math]::Pow(($g + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($g / [float]12.92) }
-        [float] $blue = if ($b -gt [float]0.04045) { [Math]::Pow(($b + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else{ ($b / [float]12.92) }
+        [float] $blue = if ($b -gt [float]0.04045) { [Math]::Pow(($b + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($b / [float]12.92) }
 
         # Convert the RGB values to XYZ using the Wide RGB D65 conversion formula
-        [float] $ret.x = $red * [float]0.664511 + $green * [float]0.154324 + $blue * [float]0.162028
-        [float] $ret.y = $red * [float]0.283881 + $green * [float]0.668433 + $blue * [float]0.047685
-        [float] $ret.z = $red * [float]0.000088 + $green * [float]0.072310 + $blue * [float]0.986039
+        [float] $x = ($red * [float]0.664511) + ($green * [float]0.154324) + ($blue * [float]0.162028)
+        [float] $y = ($red * [float]0.283881) + ($green * [float]0.668433) + ($blue * [float]0.047685)
+        [float] $z = ($red * [float]0.000088) + ($green * [float]0.072310) + ($blue * [float]0.986039)
 
         # Create the return values
-        [float] $ret.x = $ret.x / ($ret.x + $ret.y + $ret.z)
-        [float] $ret.y = $ret.y / ($ret.x + $ret.y + $ret.z)
-        [float] $ret.z = $ret.z / ($ret.x + $ret.y + $ret.z)
+        [float] $ret.x = $x / ($x + $y + $z)
+        [float] $ret.y = $y / ($x + $y + $z)
+        [float] $ret.z = $z / ($x + $y + $z)
 
         Return $ret
     }
 
+    <#
+        Stores a set of Gamut values depicting the end points of a triangle
+        corresponding to the Gamut of a bulb. The calculated XY values are compared
+        with these points to see if the converted XY values fall within this triangle.
+        If not, they're smoothed out by calculating the closest point.
+    #>
     [hashtable] GamutTriangles([Gamut] $GamutID) {
 
         $GamutTriangles = @{
@@ -473,6 +480,11 @@ Class HueLight {
                 Red = @{ x = 0.692; y = 0.308 }
                 Green = @{ x = 0.17; y = 0.7 }
                 Blue = @{ x = 0.153; y = 0.048 }
+            }
+            GamutDefault = @{
+                Red = @{ x = 1.0; y = 0.0 }
+                Green = @{ x = 0.0; y = 1.0 }
+                Blue = @{ x = 0.0; y = 0.0 }
             }
         }
 
