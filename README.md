@@ -8,6 +8,7 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
 ### Pre-requisites
  * WMF/PowerShell 5.0 (this went RTM on 16th December 2015)
  * You only need the PoSHue.ps1 file. It contains the classes you'll use.
+   * *I provide `RGBtoXY.ps1` as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is **not** required for the class to work.* 
  * You need to be on your LAN with the Hue Bridge, obviously.
 
 ---
@@ -234,11 +235,40 @@ x                              0.1648863
 #>
 ```
 
-I would now use this as follows - the parameters passed to SetHueLight cause the method to work out which overload to use. If the XY values are not valid floats, define them as such when submitting them if necessary as follows:
+I would now use this as follows - the parameters passed to `SetHueLight()` cause the method to work out which overload to use. If the XY values are not valid floats, define them as such when submitting them if necessary as follows:
 
 ```powershell
 PS C:\>$Light.SetHueLight([int] $XYB.b, [float] $XYB.x, [float] $XYB.y) # Returns Success
 ```
+
+## End to end example
+```powershell
+Import-Module .\PoSHue.ps1
+
+$Endpoint = "192.168.1.12"
+$UserID = "38cbd1cbcac542f9c26ad393739b7"
+
+# Instantiate the class and assign to the $Office variable
+$Office = [HueLight]::new("Hue go 2", $Endpoint, $UserID)
+
+# If the lamp isn't already on, turn it on.
+If ($Office.On -ne $true) {
+    $Office.SwitchHueLight("on")
+}
+
+# Royal Blue colour in RGB format
+$RGB = [System.Drawing.Color]::FromArgb(63,104,224) # Define the RGB colour to convert from
+
+# Convert the RGB for a Gamut C lamp.
+$XYZ = $Office.RGBtoXYZ($RGB) # Convert the colour with gamma correction
+$XYB = $Office.xybForModel($XYZ, 'GamutC') # Get the X, Y and Brightness for a model with GamutC (Hue Go)
+
+# Set the XY value on the light.
+$Office.SetHueLight($XYB.b,$XYB.x,$XYB.y)
+
+# Done!
+```
+
 ---
 # Any questions?
 No? Good. Seriously though, this is a starter for 10 kind of thing for now. It will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
