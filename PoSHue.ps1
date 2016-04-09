@@ -491,6 +491,10 @@ Class HueLight {
         [float] $ret.y = $y / ($x + $y + $z)
         [float] $ret.z = $z / ($x + $y + $z)
 
+        If ($ret.x.ToString() -eq 'NaN') { $ret.x = [float]0.0 }
+        If ($ret.y.ToString() -eq 'NaN') { $ret.y = [float]0.0 }
+        If ($ret.z.ToString() -eq 'NaN') { $ret.z = [float]0.0 }
+
         Return $ret
     }
 
