@@ -109,7 +109,7 @@ There are obviously some restrictions on what values you can set for the light a
  
  ```
  3. As part of instantiating/constructing the `$Light` object, the `[HueLight]` class gets the existing *state* of the light from the Bridge. It sets values like **On** (whether the light is on or off), **Brightness**, **Hue**, **Saturation** and **Colour Temperature**. When you change these values using the methods described below, the object's properties are also updated and you can use these as you see fit.
- 4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined in the class to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below but their use is perhaps better understood from the `Using-PoSHue.ps1` file:
+ 4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined in the class to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below.
 
 ---
 
@@ -191,8 +191,22 @@ From Philips' own API documentation:
 PS C:\>$Light.Breathe(select) # Returns nothing (the light performs a single breathe)
 ```
 ---
+####Change Brightness and/or XY values with transition
+Change the brightness and/or XY values over a defined period of time in multiples of 100 milliseconds.
+A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
+A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
+
+**Syntax**
+```powershell
+[string] SetHueLightTransition([int] $Brightness, [float] $X, [float] $Y, [uint16] $TransitionTime)
+```
+**Usage**
+```powershell
+PS C:\>$Light.SetHueLightTransition(102, 0.1649, 0.1338, 20) # Returns [string] Success
+```
+---
 ####Change Brightness and/or colour temperature with transition
-Change the brightness and/or colour temperature over a defined period of time in in multiples of 100 milliseconds.
+Change the brightness and/or colour temperature over a defined period of time in multiples of 100 milliseconds.
 A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
 A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
 
@@ -257,6 +271,9 @@ I would now use this as follows - the parameters passed to `SetHueLight()` cause
 ```powershell
 PS C:\>$Light.SetHueLight([int] $XYB.b, [float] $XYB.x, [float] $XYB.y) # Returns Success
 ```
+#### How do I know what Gamut my lamp/bulb is?!
+For some reason, Philips hide this information behind a login page on their Hue developer site. I imagine they wouldn't be pleased if I reproduced it here so I'll [just provide a link instead](http://www.developers.meethue.com/documentation/supported-lights). I'm sure a Google search will turn up the information you need also. Valid Gamut values for use in the `.xybForModel()` method are obtained from the `[Gamut]` enumeration, these are: `GamutA` | `GamutB` | `GamutC` | `GamutDefault` | 
+
 
 ## End to end basic example
 The following example uses the `[HueLight]` class to turn on the lamp called Hue go 2 if it isn't already on and then sets an RGB colour (Royal Blue) by converting it to XY and finally sending the command to the light (via the bridge).
