@@ -129,6 +129,7 @@ Class HueLight {
     [ValidateRange(0,65535)][int] $Hue
     [ValidateRange(0,254)][int] $Saturation
     [ValidateRange(153,500)][int] $ColourTemperature
+    [hashtable] $XY = @{ x = $null; y = $null }
     [ColourMode] $ColourMode
     [AlertType] $AlertEffect
     
@@ -171,6 +172,8 @@ Class HueLight {
         $this.Hue = $Status.state.hue
         $this.Saturation = $Status.state.sat
         $this.ColourMode = $Status.state.colormode
+        $this.XY.x = $Status.state.xy[0]
+        $this.XY.y = $Status.state.xy[1]
         If ($Status.state.ct) {
             <#
             My Hue Go somehow got itself to a colour temp of "15" which is supposed 
@@ -189,9 +192,8 @@ Class HueLight {
         $this.AlertEffect = $Status.state.alert
     }
 
+    # A simple toggle. If on, turn off. If off, turn on.
     [void] SwitchHueLight() {
-        # A simple toggle. If on, turn off. If off, turn on.
-        
         Switch ($this.On) {
             $false  {$this.On = $true}
             $true {$this.On = $false}
@@ -203,8 +205,8 @@ Class HueLight {
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
-    [void] SwitchHueLight([LightState] $State) { # An overload for SwitchHueLight
     # Set the state of the light. Always does what you give it, irrespective of the current setting.
+    [void] SwitchHueLight([LightState] $State) { # An overload for SwitchHueLight
         Switch ($State) {
             On  {$this.On = $true}
             Off {$this.On = $false}
@@ -230,9 +232,11 @@ Class HueLight {
         }
 
         $this.Brightness = $Brightness
+        $this.XY.x = $X
+        $this.XY.y = $Y
 
         $Settings = @{}
-        $Settings.Add("xy", @($x, $y))
+        $Settings.Add("xy", @($this.XY.x, $this.XY.y))
         $Settings.Add("bri", $this.Brightness)
 
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
@@ -336,8 +340,41 @@ Class HueLight {
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
+    # Set brightness and XY values with transition time.
+    [string] SetHueLight([int] $Brightness, [float] $X, [float] $Y, [uint16] $TransitionTime) {
+        If (!($this.On)) {
+            Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness and/or Colour Temperature."
+        }
+
+        $this.Brightness = $Brightness
+        $this.XY.x = $X
+        $this.XY.y = $Y
+
+        $Settings = @{}
+        $Settings.Add("xy", @($this.XY.x, $this.XY.y))
+        $Settings.Add("bri", $this.Brightness)
+        $Settings.Add("transitiontime", $TransitionTime)
+
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Brightness or XY colour value."}
+    }
+
+    # Set the brightness and colour temperature of the light with transition time
     [string] SetHueLightTransition([int] $Brightness, [int] $ColourTemperature, [uint16] $TransitionTime) {
-    # Set the brightness and colour temperature of the light.
         If (!($this.On)) {
             Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness and/or Colour Temperature."
         }
@@ -581,10 +618,10 @@ Class HueLight {
     }
 
     [hashtable] xybForModel($ConvertedXYZ, $TargetGamut ) {
-        $xy = $this.xyForModel($ConvertedXYZ, $TargetGamut)
+        $myxy = $this.xyForModel($ConvertedXYZ, $TargetGamut)
         $xyb = @{
-            x = $xy.x
-            y = $xy.y
+            x = $myxy.x
+            y = $myxy.y
             b = [int]($ConvertedXYZ.z*255)
         }
         Return $xyb

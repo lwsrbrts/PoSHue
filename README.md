@@ -66,7 +66,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  13. If you already have an APIKey/username, you can instantiate the `[HueBridge]` class with that in order to use the `.GetLightNames()` method to get the names of the lights on the bridge. Something like: 
  
  ```powershell
- PS C:\>$Bridge = [HueBridge]::New('192.168.1.12', '23343462grg456brergd56')
+ PS C:\>$Bridge = [HueBridge]::New('192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
  ```
  14. If you are struggling with something or want to get an unabashed set of data (as a PowerShell `[PSObject]`) about your lights from the bridge, use:
  
@@ -98,7 +98,7 @@ There are obviously some restrictions on what values you can set for the light a
  Light             : 4
  LightFriendlyName : Hue go 1
  BridgeIP          : 192.168.1.12
- APIKey            : 38abd1cbcac542f9a26ad393739a7
+ APIKey            : 38cbd1cbcac542f9c26ad393739b7
  JSON              : 
  On                : True
  Brightness        : 102
@@ -139,7 +139,7 @@ There are obviously some restrictions on what values you can set for the light a
   ---
  
 ####Specify the Brightness and XY co-ordinate values
-*I capitulated and included an XY method. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is hard work so I have included more detailed steps for this method in an additional section below.*
+*I capitulated and included an XY method to take advantage of RGB to XY conversion. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is quite involved so I have included more detailed steps for this method in an additional section below.*
  
  **Syntax:**
  ```powershell
@@ -192,25 +192,31 @@ PS C:\>$Light.Breathe(select) # Returns nothing (the light performs a single bre
 ```
 ---
 ####Change Brightness and/or colour temperature with transition
-Change the brightness and/or colour temperature over a defined period of time in milliseconds.
+Change the brightness and/or colour temperature over a defined period of time in in multiples of 100 milliseconds.
+A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
+A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
+
 **Syntax**
 ```powershell
 [string] SetHueLightTransition([int] $Brightness, [int] $ColourTemperature, [uint16] $TransitionTime)
 ```
 **Usage**
 ```powershell
-PS C:\>$Light.SetHueLightTransition(200, 500, 60000)
+PS C:\>$Light.SetHueLightTransition(200, 390, 20) # Returns [string] Success
 ```
 ---
 ####Change Brightness and/or Hue and/or Saturation with transition
-Change the brightness and/or Hue and/or Saturation over a defined period of time in milliseconds.
+Change the brightness and/or Hue and/or Saturation over a defined period of time in multiples of 100 milliseconds.
+A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
+A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
+
 **Syntax**
 ```powershell
 [string] SetHueLightTransition([int] $Brightness, [int] $Hue, [int] $Saturation, [uint16] $TransitionTime)
 ```
 **Usage**
 ```powershell
-PS C:\>$Light.SetHueLightTransition(150, 390, 30000)
+PS C:\>$Light.SetHueLightTransition(150, 45500, 254, 300) # Returns [string] Success
 ```
 ---
 ###Retaining current settings
@@ -224,7 +230,7 @@ PS C:\>$Light.SetHueLight(50, $Light.ColourTemperature)
 If you then wanted to change the Colour Temperature to 370 but retain the Brightness as 50 you would do: 
 
 ```powershell
-PS C:\>$Light.SetHueLight($Light.Brightness, 370)
+PS C:\>$Light.SetHueLight($Light.Brightness, 370) # Returns [string] Success
 ```  
  --- 
 ###Converting RGB to XY & Brightness
@@ -252,7 +258,7 @@ I would now use this as follows - the parameters passed to `SetHueLight()` cause
 PS C:\>$Light.SetHueLight([int] $XYB.b, [float] $XYB.x, [float] $XYB.y) # Returns Success
 ```
 
-## End to end example
+## End to end basic example
 The following example uses the `[HueLight]` class to turn on the lamp called Hue go 2 if it isn't already on and then sets an RGB colour (Royal Blue) by converting it to XY and finally sending the command to the light (via the bridge).
 ```powershell
 Add-Type -AssemblyName System.Drawing # Required or you'll get a parser error!
@@ -281,7 +287,53 @@ $Office.SetHueLight($XYB.b,$XYB.x,$XYB.y)
 
 # Done!
 ```
+## End to end advanced example
+The following example uses a class from my other project (PoSHive - to control your British Gas Hive heating system with PowerShell) to get the internal temperature inside the house and, using the Hive website's RGB values for temperatures (stored in the `[Hive]` class), temporarily transition the target light to the associated colour (of the temperature) and back again.
+```powershell
+Add-Type -AssemblyName System.Drawing # Required or you'll get a parser error!
 
+Import-Module .\PoSHive.ps1 -ErrorAction Stop # Assumes PoSHive.ps1 is in the same folder as your script.
+Import-Module .\PoSHue.ps1 -ErrorAction Stop # Assumes PoSHue.ps1 is in the same folder as your script.
+
+$Endpoint = "192.168.1.12" # IP Address of your Hue Bridge.
+$UserID = "38cbd1cbcac542f9c26ad393739b7" # API "key" / password / username obtained from Hue.
+
+$HiveUsername = 'user@domain.com' # Hive website username
+$HivePassword = '[hive website password]' # Hive website password
+
+$Hive = [Hive]::new($HiveUsername, $HivePassword) # Instantiate the [Hive] class
+$Hive.Login() # Log in to the Hive site.
+
+$Temp = [Math]::Round($Hive.GetTemperature($false)) # Get the temperature from the Hive, round it to a whole number
+
+Write-Output "Hive temperature is: $Temp" # Send back information about the current temp to console.
+
+$RGB = $Hive.ColourTemps.Item("t$Temp") # Extract the associated RGB value for a colour temperature (in celsius) from the Hive class.
+
+$Hive.Logout() # Log out from the Hive website - do this, it's a good thing!
+
+$Office = [HueLight]::new("Hue go 2", $Endpoint, $UserID) # Instantiate the HueLight class
+If ($Office.On -ne $true) { 
+    $Office.SwitchHueLight("on") # If the light isn't on, turn it on first.
+}
+
+$OriginalX = $Office.XY.x # Store the original values of the light's current X value (to restore later)
+$OriginalY = $Office.XY.y # Store the original values of the light's current Y value (to restore later)
+
+$XYZ = $Office.RGBtoXYZ([System.Drawing.Color]$RGB) # Convert the RGB temperature colour with gamma correction
+$XYB = $Office.xybForModel($XYZ, 'GamutC') # Get the X, Y and Brightness for a model with GamutC (Hue Go)
+
+$TransitionTime = New-TimeSpan -Seconds 2 # Create a timespan of 2 seconds
+
+$Office.SetHueLight(150, $XYB.x, $XYB.y, ($TransitionTime.TotalMilliseconds/100)) # Set the light to transition (over 2 seconds) to the RGB temperature value and set a brightness of 150 (out of 255).
+
+Start-Sleep -Seconds $TransitionTime.TotalSeconds # Sleep (to allow the light to finish its transition!
+
+$Office.SetHueLight(150,$OriginalX,$OriginalY, ($TransitionTime.TotalMilliseconds/100)) # Return the light to its previous colour setting.
+
+# Done!
+
+```
 ---
 # Any questions?
 No? Good. Seriously though, this is a starter for 10 kind of thing for now. It will, hopefully, improve over time. Error checking is thin/non-existent for now. Things may change. Just writing this I've spotted things I probably should change. I'll add commit comments when I do of course.
