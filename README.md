@@ -14,9 +14,20 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
 ---
 
 ### Using it
-Copy the `PoSHue.ps1` file to the same folder as your script (or somewhere else if you want!) and use `Import-Module` on its location. See `Using-PoSHue.ps1` for an example of doing that.
+Copy the `PoSHue.ps1` file to the same folder as your script (or somewhere else if you want!) and use `Import-Module` on its location. See `Using-PoSHue.ps1` for an example or scroll to the very end of this read me for an end-to-end example script.
+####First lines
+Your starting script looks as follows.
+```powershell
+Add-Type -AssemblyName System.Drawing # Required or you'll get a parser error.
+Import-Module .\PoSHue.ps1 # Assumes PoSHue.ps1 is saved in the same folder as your script!
+```
+>###Why is Add-Type needed?!
+With the recent (8th April 2016) introduction of a collection of methods to convert RGB to XY, one of the methods relies on the use of the `System.Drawing` assembly and its associated `[System.Drawing.Color]` type. This assembly **must** be loaded before the class is imported. I am working to understand how best to overcome this (if indeed it can be at all) but for now, all scripts that will import the `PoSHue.ps1` file (classes) must have the following before the import or you will receive a parse error saying the `[System.Drawing.Color]` type can't be found.
+```powershell
+Add-Type -AssemblyName System.Drawing
+```
 
-----
+---
 
 #### HueBridge Class
 Let's start with the `[HueBridge]` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the `[HueLight]` class later.
@@ -242,11 +253,13 @@ PS C:\>$Light.SetHueLight([int] $XYB.b, [float] $XYB.x, [float] $XYB.y) # Return
 ```
 
 ## End to end example
+The following example uses the `[HueLight]` class to turn on the lamp called Hue go 2 if it isn't already on and then sets an RGB colour (Royal Blue) by converting it to XY and finally sending the command to the light (via the bridge).
 ```powershell
-Import-Module .\PoSHue.ps1
+Add-Type -AssemblyName System.Drawing # Required or you'll get a parser error!
+Import-Module .\PoSHue.ps1 # Assumes PoSHue.ps1 is in the same folder as your script.
 
-$Endpoint = "192.168.1.12"
-$UserID = "38cbd1cbcac542f9c26ad393739b7"
+$Endpoint = "192.168.1.12" # IP Address of your Hue Bridge.
+$UserID = "38cbd1cbcac542f9c26ad393739b7" # API "key" / password / username obtained from Hue.
 
 # Instantiate the class and assign to the $Office variable
 $Office = [HueLight]::new("Hue go 2", $Endpoint, $UserID)
