@@ -341,7 +341,7 @@ Class HueLight {
     }
 
     # Set brightness and XY values with transition time.
-    [string] SetHueLight([int] $Brightness, [float] $X, [float] $Y, [uint16] $TransitionTime) {
+    [string] SetHueLightTransition([int] $Brightness, [float] $X, [float] $Y, [uint16] $TransitionTime) {
         If (!($this.On)) {
             Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness and/or Colour Temperature."
         }
