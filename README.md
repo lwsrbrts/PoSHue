@@ -8,7 +8,7 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
 ### Pre-requisites
  * [WMF/PowerShell 5.0](https://www.microsoft.com/en-us/download/details.aspx?id=50395) (this went RTM (again) on 24th February 2016)
  * You only need the [`PoSHue.ps1`](../master/PoSHue.ps1) file. It contains the classes you'll use.
-   * *I provide [`RGBtoXY.ps1`](../master/RGBtoXY.ps1) as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is **not** required for the class to work.* 
+   * *I provide [`RGBtoXY.ps1`](../master/RGBtoXY.ps1) as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is _not_ required for the class to work.* 
  * You need to be on your LAN with the Hue Bridge, obviously.
 
 ---
@@ -138,6 +138,20 @@ Here's a quick GIF of the process in just four lines.
  ```powershell
  PS C:\>$Light.SwitchHueLight("On") # Returns nothing (light switches on)
  PS C:\>$Light.SwitchHueLight("Off") # Returns nothing (light switches off)
+ ```
+ ---
+
+####Set the state of the light ready for transition:
+I included this to allow use of things like slow transitions from off to on, like implementing your own sunrise.
+ **Syntax**
+  ```powershell
+ [void] SwitchHueLight([LightState] $State, [bool] $Transition)
+  ```
+
+ **Usage**
+ ```powershell
+ PS C:\>$Light.SwitchHueLight("On", $true) # Returns nothing (light switches on to brightness of 1)
+ PS C:\>$Light.SwitchHueLight("Off", $true) # Returns nothing (light switches off - same as $Light.SwitchHueLight("Off")
  ```
  ---
  

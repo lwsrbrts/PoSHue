@@ -218,6 +218,24 @@ Class HueLight {
         $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
     }
 
+    # Set the state of the light (from off) for a transition - like a sunrise.
+    [void] SwitchHueLight([LightState] $State, [bool] $Transition) { # An overload for SwitchHueLight
+        Switch ($State) {
+            On  {$this.On = $true}
+            Off {$this.On = $false}
+        }
+
+        $Settings = @{}
+        $Settings.Add("on", $this.On)
+        If ($this.On -and $Transition) {
+            $this.Brightness = 1
+            $Settings.Add("bri", $this.Brightness)
+        }
+
+        $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+    }
+
+
     ###############################################
     # Importance of colour settings: XY > CT > HS #
     ###############################################
