@@ -6,15 +6,15 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted
 
 ## Go on then, how do I use it?
 ### Pre-requisites
- * WMF/PowerShell 5.0 (this went RTM on 16th December 2015)
- * You only need the PoSHue.ps1 file. It contains the classes you'll use.
-   * *I provide `RGBtoXY.ps1` as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is **not** required for the class to work.* 
+ * [WMF/PowerShell 5.0](https://www.microsoft.com/en-us/download/details.aspx?id=50395) (this went RTM (again) on 24th February 2016)
+ * You only need the [`PoSHue.ps1`](../blob/master/PoSHue.ps1) file. It contains the classes you'll use.
+   * *I provide [`RGBtoXY.ps1`](../blob/master/RGBtoXY.ps1) as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is **not** required for the class to work.* 
  * You need to be on your LAN with the Hue Bridge, obviously.
 
 ---
 
 ### Using it
-Copy the `PoSHue.ps1` file to the same folder as your script (or somewhere else if you want!) and use `Import-Module` on its location. See `Using-PoSHue.ps1` for an example or scroll to the very end of this read me for an end-to-end example script.
+Copy the [`PoSHue.ps1`](../blob/master/PoSHue.ps1) file to the same folder as your script (or somewhere else if you want!) and use `Import-Module` on its location. See `Using-PoSHue.ps1` for an example or scroll to the very end of this read me for an end-to-end example script.
 ####First lines
 Your starting script looks as follows.
 ```powershell

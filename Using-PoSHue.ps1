@@ -1,4 +1,5 @@
 # Don't run this whole script blindly, the commands here are examples.
+Add-Type -AssemblyName System.Drawing
 
 # Import the [HueBridge] and [HueLight] classes
 # so you can interact with them in your script.
@@ -95,8 +96,22 @@ $Light.SetHueLight(100, 370)
 # Perform a single Breathe action.
 $Light.Breathe("select")
 
+# Set the light to 100 brightness (out of 254), 25500 hue (Green), 254 saturation (Maximum Colour), transition for 5 seconds
+$Light.SetHueLightTransition(100, 25500, 254, 50)
+
+# Set the Brightness to 50, keep the existing colour temp, transition for 5 seconds
+$Light.SetHueLightTransition(50, $Light.ColourTemperature, 50)
+
+# Set the Brightness to 100, set colour temp to 370, transition for 5 seconds
+$Light.SetHueLightTransition(100, 370, 50)
+
 # Breathe for 15 seconds.
 $Light.Breathe("lselect")
 
 # Just see what the object properties are.
 $Light
+
+# Convert Royal Blue RGB to XY values for a Gamut C lamp
+$XYZ = $Office.RGBtoXYZ([System.Drawing.Color]$RGB) # Convert the RGB temperature colour with gamma correction
+$XYB = $Office.xybForModel($XYZ, 'GamutC') # Get the X, Y and Brightness for a model with GamutC (Hue Go)
+$Office.SetHueLight(150, $XYB.x, $XYB.y, 20) # Set the light to transition (over 2 seconds) to the RGB temperature value and set a brightness of 150 (out of 255).
