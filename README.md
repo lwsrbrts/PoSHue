@@ -111,6 +111,9 @@ There are obviously some restrictions on what values you can set for the light a
  3. As part of instantiating/constructing the `$Light` object, the `[HueLight]` class gets the existing *state* of the light from the Bridge. It sets values like **On** (whether the light is on or off), **Brightness**, **Hue**, **Saturation** and **Colour Temperature**. When you change these values using the methods described below, the object's properties are also updated and you can use these as you see fit.
  4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined in the class to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below.
 
+Here's a quick GIF of the process in just four lines.
+![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/HueLight.gif "HueLight class in action.")
+
 ---
 
 ####Toggle the light on or off:
