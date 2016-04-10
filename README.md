@@ -171,7 +171,7 @@ I included this to allow use of things like slow transitions from off to on, lik
 ---
  
 ####Specify the Brightness and/or Colour Temperature
-Not all Hue Lights support colour temperature - the class looks for the CT attribute, if it doesn't exist, this method will return an error advising that the lights does not hold this setting and it therefore cannot be set.
+Not all Hue Lights support colour temperature - the class looks for the CT attribute, if it doesn't exist, this method will return an error advising that the light does not hold this setting and it therefore cannot be set.
 
  **Syntax**
  ```powershell
