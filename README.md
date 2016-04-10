@@ -125,7 +125,7 @@ Here's a quick GIF of the process in just four lines.
 ```powershell
  PS C:\>$Light.SwitchHueLight() # Returns nothing (light toggles)
  ```
- 
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/switchhuelight.gif "SwitchHueLight()")
  ---
  
 ####Set the state of the light:
@@ -139,7 +139,7 @@ Here's a quick GIF of the process in just four lines.
  PS C:\>$Light.SwitchHueLight("On") # Returns nothing (light switches on)
  PS C:\>$Light.SwitchHueLight("Off") # Returns nothing (light switches off)
  ```
-  ---
+ ---
  
 ####Specify the Brightness and XY co-ordinate values
 *I capitulated and included an XY method to take advantage of RGB to XY conversion. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is quite involved so I have included more detailed steps for this method in an additional section below.*
@@ -153,6 +153,7 @@ Here's a quick GIF of the process in just four lines.
  ```powershell
  PS C:\>$Light.SetHueLight(150, 0.4123, 0.1348) # Returns [string] Success
  ```
+  ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/sethuelightxy.gif "SetHueLight()")
 ---
  
 ####Specify the Brightness and/or Colour Temperature
@@ -248,8 +249,11 @@ If you then wanted to change the Colour Temperature to 370 but retain the Bright
 
 ```powershell
 PS C:\>$Light.SetHueLight($Light.Brightness, 370) # Returns [string] Success
-```  
- --- 
+```
+Notice that the colour mode changes from XY to CT in the following demo.
+![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/sethuelightusingvars2.gif "SetHueLight()")
+
+--- 
 ###Converting RGB to XY & Brightness
 Here's an example of using the `[HueLight]` class to convert from RGB to XY.
 Philips' own API documentation states that the correct XY value for Royal Blue (`RGB: 63, 104, 224`) on a Gamut C lamp such as the Hue Go is `[x:0.1649, y:0.1338]`. I have tested the conversion pretty extensively for RGB values across the range and for each of the Colour Gamuts covered by Philips' different models as defined on [this page at Philips](http://www.developers.meethue.com/documentation/hue-xy-values) and they're accurate. I have of course also tested on my own Hue Go and they're accurately reproduced.
@@ -345,11 +349,11 @@ $XYB = $Office.xybForModel($XYZ, 'GamutC') # Get the X, Y and Brightness for a m
 
 $TransitionTime = New-TimeSpan -Seconds 2 # Create a timespan of 2 seconds
 
-$Office.SetHueLight(150, $XYB.x, $XYB.y, ($TransitionTime.TotalMilliseconds/100)) # Set the light to transition (over 2 seconds) to the RGB temperature value and set a brightness of 150 (out of 255).
+$Office.SetHueLightTransition(150, $XYB.x, $XYB.y, ($TransitionTime.TotalMilliseconds/100)) # Set the light to transition (over 2 seconds) to the RGB temperature value and set a brightness of 150 (out of 255).
 
 Start-Sleep -Seconds $TransitionTime.TotalSeconds # Sleep (to allow the light to finish its transition!
 
-$Office.SetHueLight(150,$OriginalX,$OriginalY, ($TransitionTime.TotalMilliseconds/100)) # Return the light to its previous colour setting.
+$Office.SetHueLightTransition(150,$OriginalX,$OriginalY, ($TransitionTime.TotalMilliseconds/100)) # Return the light to its previous colour setting.
 
 # Done!
 
