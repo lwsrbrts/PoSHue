@@ -4,7 +4,7 @@ A couple of PowerShell classes (yes, really) that assist in getting simpler acce
 Now a listed tool on [Philips' developer site](http://www.developers.meethue.com/tools-and-sdks). Lonely by itself under the PowerShell section!
 
 ## Why?
-I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted a way of controlling them using PowerShell but fiddling with JSON every time I wanted to control them seemed a bit verbose. I've boiled down the basic actions to make it simple to use PowerShell to access the RESTful API on the bridge.
+I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go (x2) and Bloom) and I wanted a way of controlling them using PowerShell but fiddling with JSON every time I wanted to control them seemed a bit verbose. I've boiled down the basic actions to make it simple to use PowerShell to access the RESTful API on the bridge. Using PowerShell means you can script lighting changes quickly and easily and use Windows' own native task scheduler to run the scripts whenever you like.
 
 ## Go on then, how do I use it?
 ### Pre-requisites
@@ -60,7 +60,9 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  ```powershell
  PS C:\>$Bridge.GetNewAPIKey()
  ```
- 9. You should get a string of digits back. Record these for further use (with the `[HueLight]` class). Pressing the link button on the Bridge might get tedious! You're automating, remember. :)
+ 9. You should get a string of characters and digits back. Record these for further use (with the `[HueLight]` class).<br/>
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/getapikey.gif "GetNewAPIKey()")<br/>
+ *In the preceding demo I used an emulator to demonstrate how to get a key. You would substitute in your own bridge IP!*
  10. Now that you have an APIKey/username stored in your bridge object, go ahead and get a list of the lights on the Bridge using:
  
  ```powershell
@@ -80,7 +82,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  PS C:\>$Bridge.GetAllLights()
  ```
  ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/bridgegetlights.gif "GetAllLights()")
- 
+ You should of course assign the returned `[PSObject]` to a variable so that you can navigate it as you wish.
  15. If you just want to turn all Hue Lights on or off (all lights will become the same state). Use:
   ```powershell
  PS C:\>$Bridge.ToggleAllLights("On")
@@ -90,7 +92,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
 ---
 
 #### HueLight Class
-The HueLight class allows you to set properties of a light (the interesting stuff!) like Brightness, Hue & Saturation and Colour Temperature. When you instantiate the `[HueLight]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the name of the Hue Light you want to control.
+The HueLight class allows you to set properties of a light (the interesting stuff!) like Brightness, XY, Hue & Saturation and Colour Temperature. When you instantiate the `[HueLight]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the _name_ of the Hue Light you want to control.
 There are obviously some restrictions on what values you can set for the light and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware rather than me, I just repeat those limits within the code.
  1. Instantiate the `[HueLight]` class, providing the necessary details. Obviously you can specify these as variables if you like.
  
