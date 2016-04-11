@@ -39,7 +39,9 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  ```powershell
  PS C:\>[HueBridge]::FindHueBridge()
  ```
- 3. Your computer will perform a search. The search is synchronous (means you need to wait for it to complete) and takes about 15-20 seconds to finish. The method finds all UPnP devices described as "Hue" on your LAN (Subnet) and returns those as a list, giving you the IP of your bridge. One might argue this should happen by default, after all, the Hue Bridge IP address may change in a DHCP network. Two reasons why I don't do this automagically: 1. Who says this is the only Hue Bridge in the network? 2. The method call is a blocking action and I've not tried to get PowerShell to do stuff asynchronously with a callback yet.
+ 3. Your computer will perform a search. The search is synchronous (means you need to wait for it to complete) and takes about 15-20 seconds to finish. The method finds all UPnP devices described as "Hue" on your LAN (Subnet) and returns those as a list, giving you the IP of your bridge. One might argue this should happen by default, after all, the Hue Bridge IP address may change in a DHCP network. Two reasons why I don't do this automagically: 1. Who says this is the only Hue Bridge in the network? 2. The method call is a blocking action and I've not tried to get PowerShell to do stuff asynchronously with a callback yet. <br/> 
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/findhuebridge-1.gif "FindHueBridge()")
+ 
  4. Instantiate a `[HueBridge]` class using your discovered (or known) Bridge IP address. Substitue your own bridge's IP address obviously.
  
  ```powershell
@@ -50,7 +52,8 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  ```powershell
  PS C:\>$Bridge
  ```
- 6. You'll see just the IP address property for now.
+ 6. You'll see just the IP address property for now. <br/>
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/bridgeobject.gif "Bridge Object")
  7. Get a new APIKey (username) for the bridge. This is what you use to authenticate with the bridge to get and set information about the lights. The only way to get the key is to press the link button on your bridge and then ask for an APIKey/username.
  8. Press the link button on the bridge then run:
  
@@ -63,6 +66,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  ```powershell
  PS C:\>$Bridge.GetLightNames()
  ```
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/bridgegetlightnames.gif "GetLightNames()")
  11. You should see a list (an array) of lights registered to the bridge. The Bridge uses numbers to refer to the lights - we humans aren't great at associating numbers with objects so I use the names of the lights. The `[HueLight]` class also uses names instead of numbers.
  12. If you call `$Bridge` again by itself, you'll see the `APIKey` property there too. Remember, save this somewhere.
  13. If you already have an APIKey/username, you can instantiate the `[HueBridge]` class with that in order to use the `.GetLightNames()` method to get the names of the lights on the bridge. Something like: 
@@ -75,6 +79,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  ```powershell
  PS C:\>$Bridge.GetAllLights()
  ```
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/bridgegetlights.gif "GetAllLights()")
  
  15. If you just want to turn all Hue Lights on or off (all lights will become the same state). Use:
   ```powershell
@@ -92,28 +97,12 @@ There are obviously some restrictions on what values you can set for the light a
  ```powershell
  PS C:\>$Light = [HueLight]::New('Hue go 1', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
  ```
- 2. Call the object to see its properties.
- 
- ```powershell
- PS C:\>$Light
- 
- Light             : 4
- LightFriendlyName : Hue go 1
- BridgeIP          : 192.168.1.12
- APIKey            : 38cbd1cbcac542f9c26ad393739b7
- JSON              : 
- On                : True
- Brightness        : 102
- Hue               : 8378
- Saturation        : 144
- ColourTemperature : 370
- ColourMode        : ct
- 
- ```
+ 2. Call the object to see its properties. <br/>
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/newlight.gif "Hue Light")
  3. As part of instantiating/constructing the `$Light` object, the `[HueLight]` class gets the existing *state* of the light from the Bridge. It sets values like **On** (whether the light is on or off), **Brightness**, **Hue**, **Saturation** and **Colour Temperature**. When you change these values using the methods described below, the object's properties are also updated and you can use these as you see fit.
  4. Now you have the `$Light` object (which is a Hue Light on your Bridge). Use any of the methods defined in the class to control it. To get a full list, either use IntelliSense or consult the class itself. The most useful methods are described below.
 
-Here's a quick GIF of the process in just four lines.
+Here's a demo of the entire end-to end process in just four lines.<br/>
 ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/HueLight.gif "HueLight class in action.")
 
 ---
