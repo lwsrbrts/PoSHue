@@ -1,5 +1,7 @@
 # PoSHue
-A couple of PowerShell classes (no, really) that assist in getting simpler access to Philips Hue Luminaires using the REST API of the Hue Bridge.
+A couple of PowerShell classes (yes, really) that assist in getting simpler access to Philips Hue Luminaires using the REST API of the Hue Bridge.
+
+Now a listed tool on [Philips' developer site](http://www.developers.meethue.com/tools-and-sdks). Lonely by itself under the PowerShell section!
 
 ## Why?
 I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go and Bloom) and I wanted a way of controlling them using PowerShell but fiddling with JSON every time I wanted to control them seemed a bit verbose. I've boiled down the basic actions to make it simple to use PowerShell to access the RESTful API on the bridge.
