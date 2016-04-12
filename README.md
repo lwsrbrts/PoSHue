@@ -81,7 +81,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
  ```powershell
  PS C:\>$Bridge.GetAllLights()
  ```
- ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/bridgegetlights.gif "GetAllLights()")
+ ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/bridgegetlights.gif "GetAllLights()")<br/>
  You should of course assign the returned `[PSObject]` to a variable so that you can navigate it as you wish.
  15. If you just want to turn all Hue Lights on or off (all lights will become the same state). Use:
   ```powershell
@@ -119,6 +119,7 @@ Here's a demo of the entire end-to end process in just four lines.<br/>
  PS C:\>$Light.SwitchHueLight() # Returns nothing (light toggles)
  ```
  ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/switchhuelight.gif "SwitchHueLight()")
+ 
  ---
  
 ####Set the state of the light:
@@ -161,6 +162,7 @@ I included this to allow use of things like slow transitions from off to on, lik
  PS C:\>$Light.SetHueLight(150, 0.4123, 0.1348) # Returns [string] Success
  ```
   ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/sethuelightxy.gif "SetHueLight()")
+  
 ---
  
 ####Specify the Brightness and/or Colour Temperature
@@ -216,6 +218,7 @@ A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
 PS C:\>$Light.SetHueLightTransition(102, 0.1649, 0.1338, 20) # Returns [string] Success
 ```
 ---
+
 ####Change Brightness and/or colour temperature with transition
 Change the brightness and/or colour temperature over a defined period of time in multiples of 100 milliseconds.
 A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
