@@ -163,6 +163,37 @@ Class HueLight : ErrorHandler {
     [hashtable] $XY = @{ x = $null; y = $null }
     [ColourMode] $ColourMode
     [AlertType] $AlertEffect
+
+    # Useful for if you would like visible temp indicators
+    hidden [hashtable] $ColourTemps = @{
+        t5 = [System.Drawing.Color]::FromArgb(80,181,221)
+        t6 = [System.Drawing.Color]::FromArgb(78,178,206)
+        t7 = [System.Drawing.Color]::FromArgb(76,176,190)
+        t8 = [System.Drawing.Color]::FromArgb(73,173,175)
+        t9 = [System.Drawing.Color]::FromArgb(72,171,159)
+        t10 = [System.Drawing.Color]::FromArgb(70,168,142)
+        t11 = [System.Drawing.Color]::FromArgb(68,166,125)
+        t12 = [System.Drawing.Color]::FromArgb(66,164,108)
+        t13 = [System.Drawing.Color]::FromArgb(102,173,94)
+        t14 = [System.Drawing.Color]::FromArgb(135,190,64)
+        t15 = [System.Drawing.Color]::FromArgb(179,204,26)
+        t16 = [System.Drawing.Color]::FromArgb(214,213,28)
+        t17 = [System.Drawing.Color]::FromArgb(249,202,3)
+        t18 = [System.Drawing.Color]::FromArgb(246,181,3)
+        t19 = [System.Drawing.Color]::FromArgb(244,150,26)
+        t20 = [System.Drawing.Color]::FromArgb(236,110,5)
+        t21 = [System.Drawing.Color]::FromArgb(234,90,36)
+        t22 = [System.Drawing.Color]::FromArgb(228,87,43)
+        t23 = [System.Drawing.Color]::FromArgb(225,74,41)
+        t24 = [System.Drawing.Color]::FromArgb(224,65,39)
+        t25 = [System.Drawing.Color]::FromArgb(217,55,43)
+        t26 = [System.Drawing.Color]::FromArgb(214,49,41)
+        t27 = [System.Drawing.Color]::FromArgb(209,43,43)
+        t28 = [System.Drawing.Color]::FromArgb(205,40,47)
+        t29 = [System.Drawing.Color]::FromArgb(200,36,50)
+        t30 = [System.Drawing.Color]::FromArgb(195,35,52)
+    }
+
     
     ###############
     # CONSTRUCTOR #
