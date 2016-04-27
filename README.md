@@ -3,30 +3,35 @@ A couple of PowerShell classes (yes, really) that assist in getting simpler acce
 
 Now a listed tool on [Philips' developer site](http://www.developers.meethue.com/tools-and-sdks). Lonely by itself under the PowerShell section!
 
+**Now [available as a module from the PowerShell Gallery](https://www.powershellgallery.com/packages/PoSHue).**
+
+```powershell
+Install-Module -Name PoSHue
+```
+
 ## Why?
 I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go (x2) and Bloom) and I wanted a way of controlling them using PowerShell but fiddling with JSON every time I wanted to control them seemed a bit verbose. I've boiled down the basic actions to make it simple to use PowerShell to access the RESTful API on the bridge. Using PowerShell means you can script lighting changes quickly and easily and use Windows' own native task scheduler to run the scripts whenever you like.
 
 ## Go on then, how do I use it?
 ### Pre-requisites
- * [WMF/PowerShell 5.0](https://www.microsoft.com/en-us/download/details.aspx?id=50395) (this went RTM (again) on 24th February 2016)
- * You only need the [`PoSHue.ps1`](../master/PoSHue.ps1) file. It contains the classes you'll use.
-   * *I provide [`RGBtoXY.ps1`](../master/RGBtoXY.ps1) as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is _not_ required for the class to work.* 
+ * [WMF/PowerShell 5.0](https://www.microsoft.com/en-us/download/details.aspx?id=50395) (this went RTM (again) on 24th February 2016) 
  * You need to be on your LAN with the Hue Bridge, obviously.
+ * *I provide [`RGBtoXY.ps1`](../master/RGBtoXY.ps1) as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is _not_ included in releases or the module when installed from the PowerShell Gallery.* 
 
 ---
 
 ### Using it
-Copy the [`PoSHue.ps1`](../master/PoSHue.ps1) file to the same folder as your script (or somewhere else if you want!) and use `Import-Module` on its location. See `Using-PoSHue.ps1` for an example or scroll to the very end of this read me for an end-to-end example script.
-####First lines
-Your starting script looks as follows.
+Install the module from the PowerShell Gallery.
 ```powershell
-Add-Type -AssemblyName System.Drawing # Required or you'll get a parser error.
-Import-Module .\PoSHue.ps1 # Assumes PoSHue.ps1 is saved in the same folder as your script!
+Install-Module -Name PoSHue # Installs the latest version of the module from the PowerShell Gallery
 ```
->###Why is Add-Type needed?!
-With the recent (8th April 2016) introduction of a collection of methods to convert RGB to XY, one of the methods relies on the use of the `System.Drawing` assembly and its associated `[System.Drawing.Color]` type. This assembly **must** be loaded before the class is imported. I am working to understand how best to overcome this (if indeed it can be at all) but for now, all scripts that will import the `PoSHue.ps1` file (classes) must have the following before the import or you will receive a parse error saying the `[System.Drawing.Color]` type can't be found.
+
+Or you may wish to download the latest release and copy [`PoSHue.ps1`](../master/PoSHue.ps1) and [`PoSHue.psd1`](../master/PoSHue.psd1) to the same folder as your script (or somewhere else if you want!) and `Import-Module` on its location. If you are loading directly from just the `PoSHue.ps1` file, you may also need to `Add-Type -AssembylName System.Drawing` otherwise you will receive a parser error.
+
+####First lines
+Assuming you've installed from the PowerShell Gallery, your starting script looks as follows.
 ```powershell
-Add-Type -AssemblyName System.Drawing
+Import-Module -Name PoSHue
 ```
 
 ---
@@ -295,8 +300,7 @@ For some reason, Philips hide this information behind a login page on their Hue 
 ## End to end basic example
 The following example uses the `[HueLight]` class to turn on the lamp called Hue go 2 if it isn't already on and then sets an RGB colour (Royal Blue) by converting it to XY and finally sending the command to the light (via the bridge).
 ```powershell
-Add-Type -AssemblyName System.Drawing # Required or you'll get a parser error!
-Import-Module .\PoSHue.ps1 # Assumes PoSHue.ps1 is in the same folder as your script.
+Import-Module -Name PoSHue
 
 $Endpoint = "192.168.1.12" # IP Address of your Hue Bridge.
 $UserID = "38cbd1cbcac542f9c26ad393739b7" # API "key" / password / username obtained from Hue.
@@ -324,10 +328,8 @@ $Office.SetHueLight($XYB.b,$XYB.x,$XYB.y)
 ## End to end advanced example
 The following example uses a class from my other project (PoSHive - to control your British Gas Hive heating system with PowerShell) to get the internal temperature inside the house and, using the Hive website's RGB values for temperatures (stored in the `[Hive]` class), temporarily transition the target light to the associated colour (of the temperature) and back again.
 ```powershell
-Add-Type -AssemblyName System.Drawing # Required or you'll get a parser error!
-
-Import-Module .\PoSHive.ps1 -ErrorAction Stop # Assumes PoSHive.ps1 is in the same folder as your script.
-Import-Module .\PoSHue.ps1 -ErrorAction Stop # Assumes PoSHue.ps1 is in the same folder as your script.
+Import-Module -Name PoSHive # Assumes PoSHiuve is installed
+Import-Module -Name PoSHue
 
 $Endpoint = "192.168.1.12" # IP Address of your Hue Bridge.
 $UserID = "38cbd1cbcac542f9c26ad393739b7" # API "key" / password / username obtained from Hue.
