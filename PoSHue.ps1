@@ -815,7 +815,7 @@ Class HueGroup : ErrorHandler {
     }
 
     HueGroup([string] $Name, [ipaddress] $Bridge, [string] $API) {
-        $this.GroupFriendlyName =  $Name
+        $this.GroupFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
         $this.Group = $this.GetLightGroup($Name)
@@ -865,27 +865,8 @@ Class HueGroup : ErrorHandler {
         }
     }
 
-    [void] CreateHueRoom([string]$GroupName, [RoomClass]$RoomClass, [string[]] $LightID) {
-        # Create a room type.
-        $Settings = @{}
-        $Settings.Add("name", $GroupName)
-        $Settings.Add("type", "Room")
-        $Settings.Add("class", [string]$RoomClass)
-        $Settings.Add("lights", $LightID)
-
-        Try {
-            $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups" -Body (ConvertTo-Json $Settings)
-            If ($Result.error) {
-                Throw $Result.error
-            }
-        }
-        Catch {
-            $this.ReturnError('CreateHueRoom([string]$GroupName, [RoomClass]$RoomClass, [string[]] $LightID): An error occurred while creating the group.'+"`n"+$_)
-        }
-    }
-
     [void] CreateLightGroup([string]$GroupName, [string[]] $LightID) {
-        # Create a light group.
+        # Create a light group. A light can belong to multiple groups.
         $Settings = @{}
         $Settings.Add("name", $GroupName)
         $Settings.Add("type", "LightGroup")
@@ -900,6 +881,50 @@ Class HueGroup : ErrorHandler {
         Catch {
             $this.ReturnError('CreateLightGroup([string]$GroupName, [string[]] $LightID): An error occurred while creating the light group.'+"`n"+$_)
         }
+        $this.GroupFriendlyName = $GroupName
+        $this.Group = $this.GetLightGroup($this.GroupFriendlyName)
+        $this.GetStatus()
+    }
+
+    [void] CreateLightGroup([string]$GroupName, [RoomClass]$RoomClass, [string[]] $LightID) {
+        # Create a room type. Lights can only belong to one room.
+        $Settings = @{}
+        $Settings.Add("name", $GroupName)
+        $Settings.Add("type", "Room")
+        $Settings.Add("class", [string]$RoomClass)
+        $Settings.Add("lights", $LightID)
+
+        Try {
+            $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups" -Body (ConvertTo-Json $Settings)
+            If ($Result.error) {
+                Throw $Result.error
+            }
+        }
+        Catch {
+            $this.ReturnError('CreateLightGroup([string]$GroupName, [RoomClass]$RoomClass, [string[]] $LightID): An error occurred while creating the group.'+"`n"+$_)
+        }
+        $this.GroupFriendlyName = $GroupName
+        $this.Group = $this.GetLightGroup($this.GroupFriendlyName)
+        $this.GetStatus()
+    }
+
+    [string] DeleteLightGroup([string]$GroupName) {
+        # Delete a light group, whether a Room or LightGroup type.
+        $Result = $null
+        $this.GroupFriendlyName = $GroupName
+        $this.Group = $this.GetLightGroup($GroupName)
+
+        Try {
+            $Result = Invoke-RestMethod -Method Delete -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)"
+            
+            If ($Result.error) {
+                Throw $Result.error
+            }
+        }
+        Catch {
+            $this.ReturnError('DeleteLightGroup([string]$GroupName): An error occurred while deleting the light group.'+"`n"+$_)
+        }
+        Return $Result.success
     }
 
     hidden [void] GetStatus() {
@@ -921,14 +946,6 @@ Class HueGroup : ErrorHandler {
         $this.XY.x = $Status.action.xy[0]
         $this.XY.y = $Status.action.xy[1]
         If ($Status.action.ct) {
-            <#
-            My Hue Go somehow got itself to a colour temp of "15" which is supposed 
-            to be impossible. The [ValidateRange] of Colour Temp meant it wasn't possible
-            to instantiate the [HueLight] class because it was outside the valid range of
-            values accepted by the property. Makes sense but now means I need to handle
-            possible impossible values. Added to the fact that this property might not
-            exist on lights that don't support colour temperature, it's a bit of a pain.
-            #>
             Switch ($Status.action.ct) {
                 {($Status.action.ct -lt 153)} {$this.ColourTemperature = 153; break}
                 {($Status.action.ct -gt 500)} {$this.ColourTemperature = 500; break}
@@ -937,5 +954,74 @@ Class HueGroup : ErrorHandler {
         }
         $this.AlertEffect = $Status.action.alert
     }
+
+    # A simple toggle. If on, turn off. If off, turn on.
+    [void] SwitchHueGroup() {
+        Switch ($this.On) {
+            $false  {$this.On = $true}
+            $true {$this.On = $false}
+        }
+
+        $Settings = @{}
+        $Settings.Add("on", $this.On)
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            If ($Result.error) {
+                Throw $Result.error
+            }
+
+        }
+        Catch {
+            $this.ReturnError('SwitchHueGroup(): An error occurred while toggling the group.'+$_)
+        }
+    }
+
+    # Set the state of the light. Always does what you give it, irrespective of the current setting.
+    [void] SwitchHueGroup([LightState] $State) { # An overload for SwitchHueLight
+        Switch ($State) {
+            On  {$this.On = $true}
+            Off {$this.On = $false}
+        }
+
+        $Settings = @{}
+        $Settings.Add("on", $this.On)
+
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            If ($Result.error) {
+                Throw $Result.error
+            }
+        }
+        Catch {
+            $this.ReturnError('SwitchHueGroup([LightState] $State): An error occurred while switching the group .'+$_)
+        }
+    }
+
+    # Set the state of the light (from off) for a transition - like a sunrise.
+    [void] SwitchHueGroup([LightState] $State, [bool] $Transition) { # An overload for SwitchHueLight
+        Switch ($State) {
+            On  {$this.On = $true}
+            Off {$this.On = $false}
+        }
+
+        $Settings = @{}
+        $Settings.Add("on", $this.On)
+        If ($this.On -and $Transition) {
+            $this.Brightness = 1
+            $Settings.Add("bri", $this.Brightness)
+        }
+
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            If ($Result.error) {
+                Throw $Result.error
+            }
+
+        }
+        Catch {
+            $this.ReturnError('SwitchHueGroup([LightState] $State, [bool] $Transition): An error occurred while toggling the group for transition.'+$_)
+        }
+    }
+
 
 }
