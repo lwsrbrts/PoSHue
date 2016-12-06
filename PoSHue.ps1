@@ -27,6 +27,25 @@ Enum Gamut {
     GamutDefault
 }
 
+Enum RoomClass {
+    Kitchen
+    Dining
+    Bedroom
+    Bathroom
+    Nursery
+    Recreation
+    Office
+    Gym
+    Hallway
+    Toilet
+    Garage
+    Terrace
+    Garden
+    Driveway
+    Carport
+    Other
+}
+
 Class ErrorHandler {
     # Base class defining a method for error handling which we can extend
     # Return errors and terminates execution
@@ -43,6 +62,7 @@ Class HueBridge : ErrorHandler {
 
     [ipaddress] $BridgeIP
     [ValidateLength(20,50)][string] $APIKey
+    hidden [int] $GroupID
 
     ###############
     # CONSTRUCTOR #
@@ -142,6 +162,7 @@ Class HueBridge : ErrorHandler {
             $this.ReturnError('SetHueScene([string] $SceneID): An error occurred while setting a scene.'+$_)
         }
     }
+
 }
 
 Class HueLight : ErrorHandler {
@@ -760,6 +781,161 @@ Class HueLight : ErrorHandler {
             b = [int]($ConvertedXYZ.z*255)
         }
         Return $xyb
+    }
+
+}
+
+Class HueGroup : ErrorHandler {
+
+    ##############
+    # PROPERTIES #
+    ##############
+
+    [ValidateLength(1,2)][string] $Group
+    [ValidateLength(2,80)][string] $GroupFriendlyName
+    [ipaddress] $BridgeIP
+    [ValidateLength(20,50)][string] $APIKey
+    [ValidateLength(1,2000)][string] $JSON
+    [bool] $On
+    [ValidateRange(1,254)][int] $Brightness
+    [ValidateRange(0,65535)][int] $Hue
+    [ValidateRange(0,254)][int] $Saturation
+    [ValidateRange(153,500)][int] $ColourTemperature
+    [hashtable] $XY = @{ x = $null; y = $null }
+    [ColourMode] $ColourMode
+    [AlertType] $AlertEffect
+
+    ###############
+    # CONSTRUCTOR #
+    ###############
+
+    HueGroup([ipaddress] $Bridge, [string] $API) {
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $API
+    }
+
+    HueGroup([string] $Name, [ipaddress] $Bridge, [string] $API) {
+        $this.GroupFriendlyName =  $Name
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $API
+        $this.Group = $this.GetLightGroup($Name)
+        $this.GetStatus()
+    }
+
+    ###########
+    # METHODS #
+    ###########
+
+    hidden [int] GetLightGroup([string] $Name) {
+        If (!($Name)) { Throw "No group name was specified." }
+        # Change the named group in to the integer used by the bridge. We use this throughout.
+        $Result = $null
+        Try {
+            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups"
+            If ($Result.error) {
+                Throw $Result.error
+            }
+        }
+        Catch {
+            $this.ReturnError('GetLightGroup([string] $Name): An error occurred while getting light information.'+$_)
+        }
+        $Groups = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        $this.Group = $Groups | Where-Object {$_.Value.Name -match $Name}  | Select Name -ExpandProperty Name
+        If ($this.Group) {
+            Return $this.Group
+        }
+        Else {
+            Throw "No group name matching `"$Name`" was found in the Hue Bridge `"$($this.BridgeIP)`".`r`nTry using [HueBridge]::GetLightGroups() to get a full list of groups in this Hue Bridge."
+        }
+    }
+
+    [psobject] GetLightGroups() {
+        # Get light groups.
+
+        Try {
+            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups"
+            If ($Result.error) {
+                Throw $Result.error
+            }
+            Return $Result
+        }
+        Catch {
+            $this.ReturnError('GetLightGroups(): An error occurred while getting the light groups.'+"`n"+$_)
+            Return $null
+        }
+    }
+
+    [void] CreateHueRoom([string]$GroupName, [RoomClass]$RoomClass, [string[]] $LightID) {
+        # Create a room type.
+        $Settings = @{}
+        $Settings.Add("name", $GroupName)
+        $Settings.Add("type", "Room")
+        $Settings.Add("class", [string]$RoomClass)
+        $Settings.Add("lights", $LightID)
+
+        Try {
+            $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups" -Body (ConvertTo-Json $Settings)
+            If ($Result.error) {
+                Throw $Result.error
+            }
+        }
+        Catch {
+            $this.ReturnError('CreateHueRoom([string]$GroupName, [RoomClass]$RoomClass, [string[]] $LightID): An error occurred while creating the group.'+"`n"+$_)
+        }
+    }
+
+    [void] CreateLightGroup([string]$GroupName, [string[]] $LightID) {
+        # Create a light group.
+        $Settings = @{}
+        $Settings.Add("name", $GroupName)
+        $Settings.Add("type", "LightGroup")
+        $Settings.Add("lights", $LightID)
+
+        Try {
+            $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups" -Body (ConvertTo-Json $Settings)
+            If ($Result.error) {
+                Throw $Result.error
+            }
+        }
+        Catch {
+            $this.ReturnError('CreateLightGroup([string]$GroupName, [string[]] $LightID): An error occurred while creating the light group.'+"`n"+$_)
+        }
+    }
+
+    hidden [void] GetStatus() {
+        # Get the current values of the State, Hue, Saturation, Brightness and Colour Temperatures
+        If (!($this.Group)) { Throw "No group is specified." }
+        $Status = $null
+        Try {
+            $Status = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)"
+        }
+        Catch {
+            $this.ReturnError('GetStatus(): An error occurred while getting the status of the group.'+$_)
+        }
+
+        $this.On = $Status.action.on
+        $this.Brightness = $Status.action.bri
+        $this.Hue = $Status.action.hue
+        $this.Saturation = $Status.action.sat
+        $this.ColourMode = $Status.action.colormode
+        $this.XY.x = $Status.action.xy[0]
+        $this.XY.y = $Status.action.xy[1]
+        If ($Status.action.ct) {
+            <#
+            My Hue Go somehow got itself to a colour temp of "15" which is supposed 
+            to be impossible. The [ValidateRange] of Colour Temp meant it wasn't possible
+            to instantiate the [HueLight] class because it was outside the valid range of
+            values accepted by the property. Makes sense but now means I need to handle
+            possible impossible values. Added to the fact that this property might not
+            exist on lights that don't support colour temperature, it's a bit of a pain.
+            #>
+            Switch ($Status.action.ct) {
+                {($Status.action.ct -lt 153)} {$this.ColourTemperature = 153; break}
+                {($Status.action.ct -gt 500)} {$this.ColourTemperature = 500; break}
+                default {$this.ColourTemperature = $Status.action.ct}
+            }
+        }
+        $this.AlertEffect = $Status.action.alert
     }
 
 }
