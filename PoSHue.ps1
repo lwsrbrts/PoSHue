@@ -1038,6 +1038,7 @@ Class HueGroup : ErrorHandler {
 
     # Change the attributes of a group
     [void] SetHueGroup([string] $Name, [string[]] $LightIDs) { 
+        If (!($this.Group)) { Throw 'The group must exist and be defined in this object before it can be changed. If you have not already, create the group or re-instantiate this object with an existing group name.' }
         
         $Settings = @{}
         $Settings.Add("name", $Name)
@@ -1052,6 +1053,7 @@ Class HueGroup : ErrorHandler {
             $this.Lights = $LightIDs
         }
         Catch {
+            $this.ReturnError('SetHueGroup([string] $Name, [string[]] $LightIDs): An error occurred setting the group attributes/members.'+$_)
         }
     }
 
