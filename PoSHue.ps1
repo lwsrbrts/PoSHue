@@ -62,7 +62,6 @@ Class HueBridge : ErrorHandler {
 
     [ipaddress] $BridgeIP
     [ValidateLength(20,50)][string] $APIKey
-    hidden [int] $GroupID
 
     ###############
     # CONSTRUCTOR #
@@ -871,7 +870,7 @@ Class HueGroup : ErrorHandler {
     }
 
     [void] CreateLightGroup([string]$GroupName, [string[]] $LightID) {
-        # Create a light group. A light can belong to multiple groups.
+        # Create a light group. A light can belong to multiple light groups.
         $Settings = @{}
         $Settings.Add("name", $GroupName)
         $Settings.Add("type", "LightGroup")
@@ -921,7 +920,6 @@ Class HueGroup : ErrorHandler {
 
         Try {
             $Result = Invoke-RestMethod -Method Delete -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)"
-            
             If ($Result.error) {
                 Throw $Result.error
             }
