@@ -804,6 +804,11 @@ Class HueGroup : ErrorHandler {
     [hashtable] $XY = @{ x = $null; y = $null }
     [ColourMode] $ColourMode
     [AlertType] $AlertEffect
+    [array] $Lights
+    [RoomClass] $GroupClass
+    [string] $GroupType
+    [bool] $AnyOn
+    [bool] $AllOn
 
     ###############
     # CONSTRUCTOR #
@@ -953,6 +958,14 @@ Class HueGroup : ErrorHandler {
             }
         }
         $this.AlertEffect = $Status.action.alert
+        $this.Lights = $Status.lights
+        $this.AllOn = $Status.state.all_on
+        $this.AnyOn = $Status.state.any_on
+        If ($Status.class) {
+            $this.GroupClass = $Status.class
+        }
+        Else { $this.GroupClass = 'Other' }
+        $this.GroupType = $Status.type
     }
 
     # A simple toggle. If on, turn off. If off, turn on.
@@ -1020,6 +1033,25 @@ Class HueGroup : ErrorHandler {
         }
         Catch {
             $this.ReturnError('SwitchHueGroup([LightState] $State, [bool] $Transition): An error occurred while toggling the group for transition.'+$_)
+        }
+    }
+
+    # Change the attributes of a group
+    [void] SetHueGroup([string] $Name, [string[]] $LightIDs) { 
+        
+        $Settings = @{}
+        $Settings.Add("name", $Name)
+        $Settings.Add("lights", $LightIDs)
+
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)" -Body (ConvertTo-Json $Settings)
+            If ($Result.error -ne $null) {
+                Throw $Result.error
+            }
+            $this.GroupFriendlyName = $Name
+            $this.Lights = $LightIDs
+        }
+        Catch {
         }
     }
 
