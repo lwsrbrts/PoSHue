@@ -242,6 +242,8 @@ PS C:\> $Group.DeleteLightGroup('Test')
 ---
 
 #### Change a group:
+To change a group, it must already exist and be instantiated in your variable/object ie. the object must be set to (instantiated against) an existing group already. The purpose of this method is to allow you to both change the name and/or change the lights of an existing group which you have already instantiated.
+
  **Syntax**
  ```powershell
  [void] SetHueGroup([string] Name, [string[]] LightIDs)
@@ -254,6 +256,7 @@ PS C:\> $Group.SetHueGroup('Test', @(5,6,7)) # Returns nothing, group is updated
 
 #### Turn a group on or off:
 There are three overloads for the SwitchHueGroup() method.
+
  **Syntax**
  ```powershell
  [void] SwitchHueGroup()
