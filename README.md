@@ -96,6 +96,179 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
 
 ---
 
+#### HueGroup Class
+The HueGroup class allows you to create, edit and delete groups. As of 08/12/2016 (8th December 2016) you also have the ability to turn the groups on or off. I expect before Christmas 2016 I will have also added the ability to control the properties of lights that are in the group.
+To get started with the HueGroup class, instantiate it. There are two constructors for the HueGroup class, one requires the name of an existing group. The other does not and is intended for the purposes of managing groups where you do not specifically want to instantiate from an existing group first.
+
+ 1. This first example creates a blank group object and is intended for management of groups and finding out what group names there are. First I create a group object and then I recall the group to see its properties. The properties are all set at the default values and you can see the `Group` and `GroupFriendlyName` properties are not set.
+
+ ```powershell
+ PS C:\>$Group = [HueGroup]::New('192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
+
+ PS C:\>$Group
+ Group             : 
+ GroupFriendlyName : 
+ BridgeIP          : 192.168.1.12
+ APIKey            : 38cbd1cbcac542f9c26ad393739b7
+ JSON              : 
+ On                : False
+ Brightness        : 0
+ Hue               : 0
+ Saturation        : 0
+ ColourTemperature : 0
+ XY                : {y, x}
+ ColourMode        : xy
+ AlertEffect       : none
+ Lights            : 
+ GroupClass        : Kitchen
+ GroupType         : 
+ AnyOn             : False
+ AllOn             : False
+ ```
+ 2. This second example instantiates a group object and binds it to the `$Group` variable. Now that we have provided a valid group name, the properties are set.
+
+ ```powershell
+ PS C:\>$Group = [HueGroup]::New('Test', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
+
+ PS C:\>$Group
+ Group             : 10
+ GroupFriendlyName : Test
+ BridgeIP          : 192.168.1.12
+ APIKey            : 38cbd1cbcac542f9c26ad393739b7
+ JSON              : 
+ On                : False
+ Brightness        : 254
+ Hue               : 7688
+ Saturation        : 199
+ ColourTemperature : 443
+ XY                : {y, x}
+ ColourMode        : xy
+ AlertEffect       : none
+ Lights            : {5, 6}
+ GroupClass        : Other
+ GroupType         : LightGroup
+ AnyOn             : False
+ AllOn             : False
+ ```
+
+#### Get a list of groups:
+ **Syntax**
+ ```powershell
+ [PSObject] GetLightGroups()
+ ```
+ **Usage**
+```powershell
+PS C:\> $Group.GetLightGroups()
+
+
+1  : @{name=Hue Beyond 1; lights=System.Object[]; type=Luminaire; state=; uniqueid=00:37:c7:c8; modelid=HBL001; action=}
+2  : @{name=Hue Beyond Down 1; lights=System.Object[]; type=LightSource; state=; uniqueid=00:37:c7:c8-02; action=}
+3  : @{name=Hue Beyond Up 1; lights=System.Object[]; type=LightSource; state=; uniqueid=00:37:c7:c8-01; action=}
+4  : @{name=Lounge; lights=System.Object[]; type=Room; state=; class=Living room; action=}
+5  : @{name=Hall; lights=System.Object[]; type=Room; state=; class=Hallway; action=}
+6  : @{name=Office; lights=System.Object[]; type=Room; state=; class=Office; action=}
+7  : @{name=Bedroom; lights=System.Object[]; type=Room; state=; class=Bedroom; action=}
+8  : @{name=Loft; lights=System.Object[]; type=Room; state=; class=Living room; action=}
+9  : @{name=Kitchen; lights=System.Object[]; type=Room; state=; class=Living room; action=}
+10 : @{name=Test; lights=System.Object[]; type=LightGroup; state=; recycle=False; action=} ```
+```
+---
+#### Get a single group ID:
+This is a hidden method but is documented here for benefit.
+
+ **Syntax**
+ ```powershell
+ hidden [int] GetLightGroup(string Name)
+ ```
+ **Usage**
+```powershell
+PS C:\> $Group.GetLightGroup('Test')
+10
+
+```
+---
+
+#### Create a group:
+
+**NB: *To obtain a list of light IDs, use the `GetAllLights()` method from the [HueBridge] class.***
+
+There are two overloads for the CreateLightGroup() method. Each creates a different "type" of group. The two types of group are:
+ * **LightGroup** - a LightGroup is a group of lights. The lights in the group can be any or all lights, whether they are a member of an existing group or not.
+ * **Room** - a Room is a defined area within the home that contains lights. Lights can only belong to a single room at any one time. So, for example, a light cannot be in a group called Bedroom and a group called Kitchen at the same time. To define a Room group type, you must provide a RoomClass. To obtain a list of acceptable RoomClasses, use the following command after importing the module to your session.
+ ```powershell
+ PS C:\> [system.enum]::GetNames([RoomClass])
+Kitchen
+Dining
+Bedroom
+Bathroom
+Nursery
+Recreation
+Office
+Gym
+Hallway
+Toilet
+Garage
+Terrace
+Garden
+Driveway
+Carport
+Other
+ ```
+After creating the group, the object properties are populated with the newly created group.
+
+ **Syntax**
+ ```powershell
+[void] CreateLightGroup([string] GroupName, [string[]] LightID) # Create LightGroup
+[void] CreateLightGroup([string] GroupName, [RoomClass] RoomClass, [string[]] LightID) # Create Room
+ ```
+ **Usage**
+```powershell
+PS C:\> $Group.CreateLightGroup('Test', @(5,6)) # Returns nothing, group is created, $Group is updated.
+PS C:\> $Group.CreateLightGroup('Test', 'Bedroom', @(5,6)) # Returns nothing, group is created, $Group is updated.
+
+```
+---
+#### Delete a group:
+ **Syntax**
+ ```powershell
+ [string] DeleteLightGroup([string] GroupName)
+ ```
+ **Usage**
+```powershell
+PS C:\> $Group.DeleteLightGroup('Test')
+/groups/10 deleted
+
+```
+---
+
+#### Change a group:
+ **Syntax**
+ ```powershell
+ [void] SetHueGroup([string] Name, [string[]] LightIDs)
+ ```
+ **Usage**
+```powershell
+PS C:\> $Group.SetHueGroup('Test', @(5,6,7)) # Returns nothing, group is updated, $Group is updated.
+```
+---
+
+#### Turn a group on or off:
+There are three overloads for the SwitchHueGroup() method.
+ **Syntax**
+ ```powershell
+ [void] SwitchHueGroup()
+ [void] SwitchHueGroup([LightState] State)
+ [void] SwitchHueGroup([LightState] State, [bool] Transition)
+ ```
+ **Usage**
+```powershell
+PS C:\> $Group.SwitchHueGroup() # Returns nothing, toggles all lights in the group on or off.
+PS C:\> $Group.SwitchHueGroup('on') # Returns nothing, toggles all lights in the group on.
+PS C:\> $Group.SwitchHueGroup('on', $true) # Returns nothing, toggles all lights in the group on and ready for transition effect (Brightness=1).
+```
+---
+
+
 #### HueLight Class
 The HueLight class allows you to set properties of a light (the interesting stuff!) like Brightness, XY, Hue & Saturation and Colour Temperature. When you instantiate the `[HueLight]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the _name_ of the Hue Light you want to control.
 There are obviously some restrictions on what values you can set for the light and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware rather than me, I just repeat those limits within the code.
