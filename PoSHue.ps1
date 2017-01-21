@@ -343,6 +343,43 @@ Class HueLight : ErrorHandler {
         }
     }
 
+    ### Set the light's brightness value ###
+    [string] SetHueLight([int] $Brightness) {
+    # Set the brightness values of the light.
+        If (!($this.On)) {
+            Throw "Light `"$($this.LightFriendlyName)`" must be on in order to set Brightness."
+        }
+        $Result = $null
+
+        $this.Brightness = $Brightness
+
+        $Settings = @{}
+        $Settings.Add("bri", $this.Brightness)
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/lights/$($this.Light)/state" -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('SetHueLight([int] $Brightness): An error occurred while setting the light brightness.'+$_)
+        }
+
+        # Handle errors - incomplete in reality but should suffice for now.
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the brightness."}
+    }
+
     ###############################################
     # Importance of colour settings: XY > CT > HS #
     ###############################################
@@ -1035,7 +1072,7 @@ Class HueGroup : ErrorHandler {
     }
 
     # Change the attributes of a group
-    [void] SetHueGroup([string] $Name, [string[]] $LightIDs) { 
+    [void] EditHueGroup([string] $Name, [string[]] $LightIDs) { 
         If (!($this.Group)) { Throw 'The group must exist and be defined in this object before it can be changed. If you have not already, create the group or re-instantiate this object with an existing group name.' }
         
         $Settings = @{}
@@ -1055,5 +1092,158 @@ Class HueGroup : ErrorHandler {
         }
     }
 
+    ### Set an brightness value - good when you don't want to alter the entire group's colour settings. ###
+    [string] SetHueGroup([int] $Brightness) {
+    # Set the brightness values of all lights in the group.
+        If (!($this.Group)) {
+            Throw 'No group specified. Instantiate an existing group first.'
+        }
+        $Result = $null
 
+        $this.Brightness = $Brightness
+
+        $Settings = @{}
+        $Settings.Add("bri", $this.Brightness)
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('SetHueGroup([int] $Brightness): An error occurred while setting the group brightness.'+$_)
+        }
+
+        # Handle errors - incomplete in reality but should suffice for now.
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the brightness."}
+    }
+
+
+    ### Set an XY value ###
+    # Depends on the Gamut capability of the target lights in the group
+    # See: http://www.developers.meethue.com/documentation/hue-xy-values
+    [string] SetHueGroup([int] $Brightness, [float] $X, [float] $Y) {
+    # Set brightness and XY values.
+        If (!($this.Group)) {
+            Throw 'No group specified. Instantiate an existing group first.'
+        }
+        $Result = $null
+        $this.Brightness = $Brightness
+        $this.XY.x = $X
+        $this.XY.y = $Y
+
+        $Settings = @{}
+        $Settings.Add("xy", @($this.XY.x, $this.XY.y))
+        $Settings.Add("bri", $this.Brightness)
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('SetHueGroup([int] $Brightness, [float] $X, [float] $Y): An error occurred while setting the group for XY.'+$_)
+        }
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Brightness or XY colour value of the group."}
+    }
+
+    ### Set a colour temperature ###
+    [string] SetHueGroup([int] $Brightness, [int] $ColourTemperature) {
+    # Set the brightness and colour temperature of the lights in the group.
+        If (!($this.Group)) {
+            Throw 'No group specified. Instantiate an existing group first.'
+        }
+
+        $Result = $null
+        $this.Brightness = $Brightness
+        $this.ColourTemperature = $ColourTemperature
+
+        $Settings = @{}
+        $Settings.Add("bri", $this.Brightness)
+        $Settings.Add("ct", $this.ColourTemperature)
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('SetHueGroup([int] $Brightness, [int] $ColourTemperature): An error occurred while setting the group for colour temperature.'+$_)
+        }
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Brightness or Colour Temperature."}
+    }
+
+    ### Set an HSB value ###
+    [string] SetHueGroup([int] $Brightness, [int] $Hue, [int] $Saturation) {
+    # Set the brightness, hue and saturation values of the light.
+        If (!($this.Group)) {
+            Throw 'No group specified. Instantiate an existing group first.'
+        }
+        $Result = $null
+
+        $this.Brightness = $Brightness
+        $this.Hue = $Hue
+        $this.Saturation = $Saturation
+
+        $Settings = @{}
+        $Settings.Add("bri", $this.Brightness)
+        $Settings.Add("hue", $this.Hue)
+        $Settings.Add("sat", $this.Saturation)
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('SetHueGroup([int] $Brightness, [int] $Hue, [int] $Saturation): An error occurred while setting the group for HSB.'+$_)
+        }
+
+        # Handle errors - incomplete in reality but should suffice for now.
+        If (($Result.success -ne $null) -and ($Result.error -eq $null)) {
+            $this.GetStatus()
+            Return "Success"
+        }
+        ElseIf ($Result.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $Result) {
+                Switch ($e.error.type) {
+                    201 {$Output += $e.error.description}
+                    default {$Output +=  "Unknown error: $($e.error.description)"}
+                }
+            }
+            Throw $Output
+        }
+        Else {Throw "An error occurred setting the Hue, Saturation or Brightness."}
+    }
 }
