@@ -97,7 +97,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
 ---
 
 #### HueGroup Class
-The HueGroup class allows you to create, edit and delete groups. As of 08/12/2016 (8th December 2016) you also have the ability to turn the groups on or off. I expect before Christmas 2016 I will have also added the ability to control the properties of lights that are in the group.
+The HueGroup class allows you to create, edit and delete groups. Although not documented, the HueGroup also allows you to control brightness, hue, saturation and XY values of light groups and rooms in the same way as individual lights.
 To get started with the HueGroup class, instantiate it. There are two constructors for the HueGroup class, one requires the name of an existing group. The other does not and is intended for the purposes of managing groups where you do not specifically want to instantiate from an existing group first.
 
  1. This first example creates a blank group object and is intended for management of groups and finding out what group names there are. First I create a group object and then I recall the group to see its properties. The properties are all set at the default values and you can see the `Group` and `GroupFriendlyName` properties are not set.
@@ -246,11 +246,11 @@ To change a group, it must already exist and be instantiated in your variable/ob
 
  **Syntax**
  ```powershell
- [void] SetHueGroup([string] Name, [string[]] LightIDs)
+ [void] EditHueGroup([string] Name, [string[]] LightIDs)
  ```
  **Usage**
 ```powershell
-PS C:\> $Group.SetHueGroup('Test', @(5,6,7)) # Returns nothing, group is updated, $Group is updated.
+PS C:\> $Group.EditHueGroup('Test', @(5,6,7)) # Returns nothing, group is updated, $Group is updated.
 ```
 ---
 
@@ -271,6 +271,46 @@ PS C:\> $Group.SwitchHueGroup('on', $true) # Returns nothing, toggles all lights
 ```
 ---
 
+#### Specify the Brightness and XY co-ordinate values of a Group
+*I capitulated and included an XY method to take advantage of RGB to XY conversion. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is quite involved so I have included more detailed steps for this method in an additional section below. The information there applies to lights and groups equally but if you attempt to set a colour for one light in a group that has a different Gamut to other lights, something will look slightly off/different colour reproduction.*
+ 
+ **Syntax:**
+ ```powershell
+ [string] SetHueGroup([int] $Brightness, [float] $X, [float] $Y)
+ ```
+ 
+ **Usage:**
+ ```powershell
+ PS C:\>$Group.SetHueGroup(150, 0.4123, 0.1348) # Returns [string] Success
+ ```  
+---
+ 
+#### Specify the Brightness and/or Colour Temperature
+Not all Hue Lights support colour temperature - the class looks for the CT attribute, if it doesn't exist, this method will return an error advising that the light does not hold this setting and it therefore cannot be set.
+
+ **Syntax**
+ ```powershell
+ [string] SetHueGroup([int] $Brightness, [int] $ColourTemperature)
+ ```
+ **Usage**
+ ```powershell
+ PS C:\>$Group.SetHueGroup(150, 380) # Returns [string] Success
+ ```
+  ---
+ 
+#### Specify the Brightness and/or Hue and/or Saturation
+**Syntax** 
+```powershell
+[string] SetHueGroup([int] $Brightness, [int] $Hue, [int] $Saturation)
+```
+**Usage**
+```powershell
+PS C:\>$Group.SetHueGroup(150, 45500, 150) # Returns [string] Success
+```
+---
+
+
+
 
 #### HueLight Class
 The HueLight class allows you to set properties of a light (the interesting stuff!) like Brightness, XY, Hue & Saturation and Colour Temperature. When you instantiate the `[HueLight]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the _name_ of the Hue Light you want to control.
@@ -289,8 +329,7 @@ Here's a demo of the entire end-to end process in just four lines.<br/>
 ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/HueLight.gif "HueLight class in action.")
 
 ---
-
-####Toggle the light on or off:
+#### Toggle the light on or off:
  **Syntax**
  ```powershell
  [void] SwitchHueLight()
@@ -303,7 +342,7 @@ Here's a demo of the entire end-to end process in just four lines.<br/>
  
  ---
  
-####Set the state of the light:
+#### Set the state of the light:
  **Syntax**
   ```powershell
  [void] SwitchHueLight([LightState] $State)
@@ -316,7 +355,7 @@ Here's a demo of the entire end-to end process in just four lines.<br/>
  ```
  ---
 
-####Set the state of the light ready for transition:
+#### Set the state of the light ready for transition:
 I included this to allow use of things like slow transitions from off to on, like implementing your own sunrise.
  **Syntax**
   ```powershell
@@ -330,7 +369,7 @@ I included this to allow use of things like slow transitions from off to on, lik
  ```
  ---
  
-####Specify the Brightness and XY co-ordinate values
+#### Specify the Brightness and XY co-ordinate values
 *I capitulated and included an XY method to take advantage of RGB to XY conversion. The conversion to get from RGB to an XY value in the correct colour Gamut for a specific model is quite involved so I have included more detailed steps for this method in an additional section below.*
  
  **Syntax:**
@@ -346,7 +385,7 @@ I included this to allow use of things like slow transitions from off to on, lik
   
 ---
  
-####Specify the Brightness and/or Colour Temperature
+#### Specify the Brightness and/or Colour Temperature
 Not all Hue Lights support colour temperature - the class looks for the CT attribute, if it doesn't exist, this method will return an error advising that the light does not hold this setting and it therefore cannot be set.
 
  **Syntax**
@@ -359,7 +398,7 @@ Not all Hue Lights support colour temperature - the class looks for the CT attri
  ```
   ---
  
-####Specify the Brightness and/or Hue and/or Saturation
+#### Specify the Brightness and/or Hue and/or Saturation
 **Syntax** 
 ```powershell
 [string] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation)
@@ -370,7 +409,7 @@ PS C:\>$Light.SetHueLight(150, 45500, 150) # Returns [string] Success
 ```
 ---
   
-####Perform a Breathe action
+#### Perform a Breathe action
 
 From Philips' own API documentation:
 
@@ -385,7 +424,7 @@ From Philips' own API documentation:
 PS C:\>$Light.Breathe(select) # Returns nothing (the light performs a single breathe)
 ```
 ---
-####Change Brightness and/or XY values with transition
+#### Change Brightness and/or XY values with transition
 Change the brightness and/or XY values over a defined period of time in multiples of 100 milliseconds.
 A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
 A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
@@ -400,7 +439,7 @@ PS C:\>$Light.SetHueLightTransition(102, 0.1649, 0.1338, 20) # Returns [string] 
 ```
 ---
 
-####Change Brightness and/or colour temperature with transition
+#### Change Brightness and/or colour temperature with transition
 Change the brightness and/or colour temperature over a defined period of time in multiples of 100 milliseconds.
 A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
 A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
@@ -414,7 +453,7 @@ A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
 PS C:\>$Light.SetHueLightTransition(200, 390, 20) # Returns [string] Success
 ```
 ---
-####Change Brightness and/or Hue and/or Saturation with transition
+#### Change Brightness and/or Hue and/or Saturation with transition
 Change the brightness and/or Hue and/or Saturation over a defined period of time in multiples of 100 milliseconds.
 A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
 A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
@@ -428,7 +467,7 @@ A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
 PS C:\>$Light.SetHueLightTransition(150, 45500, 254, 300) # Returns [string] Success
 ```
 ---
-###Retaining current settings
+### Retaining current settings
 To retain the same settings for one or more property such as Brightness, just use the existing property of the object and essentially, set it again.
 
 For example, the following command would retain the same colour temperature as already set in the object but set the brightness to 50:
@@ -445,7 +484,7 @@ Notice that the colour mode changes from XY to CT in the following demo.
 ![alt-text](http://www.lewisroberts.com/wp-content/uploads/2016/04/sethuelightusingvars2.gif "SetHueLight()")
 
 --- 
-###Converting RGB to XY & Brightness
+### Converting RGB to XY & Brightness
 Here's an example of using the `[HueLight]` class to convert from RGB to XY.
 Philips' own API documentation states that the correct XY value for Royal Blue (`RGB: 63, 104, 224`) on a Gamut C lamp such as the Hue Go is `[x:0.1649, y:0.1338]`. I have tested the conversion pretty extensively for RGB values across the range and for each of the Colour Gamuts covered by Philips' different models as defined on [this page at Philips](http://www.developers.meethue.com/documentation/hue-xy-values) and they're accurate. I have of course also tested on my own Hue Go and they're accurately reproduced.
 The following is an example of using the RGBtoXYZ (and subsequently xybForModel) method to get a smoothed value for use with your own lamp.

@@ -1088,7 +1088,7 @@ Class HueGroup : ErrorHandler {
             $this.Lights = $LightIDs
         }
         Catch {
-            $this.ReturnError('SetHueGroup([string] $Name, [string[]] $LightIDs): An error occurred setting the group attributes/members.'+$_)
+            $this.ReturnError('EditHueGroup([string] $Name, [string[]] $LightIDs): An error occurred setting the group attributes/members.'+$_)
         }
     }
 
