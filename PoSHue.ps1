@@ -161,7 +161,6 @@ Class HueBridge : ErrorHandler {
             $this.ReturnError('SetHueScene([string] $SceneID): An error occurred while setting a scene.'+$_)
         }
     }
-
 }
 
 Class HueLight : ErrorHandler {
@@ -1246,4 +1245,101 @@ Class HueGroup : ErrorHandler {
         }
         Else {Throw "An error occurred setting the Hue, Saturation or Brightness."}
     }
+}
+
+Class HueSensor : ErrorHandler {
+
+    ##############
+    # PROPERTIES #
+    ##############
+
+    [ValidateLength(1,2)][string] $Sensor
+    [ValidateLength(2,80)][string] $SensorFriendlyName
+    [ipaddress] $BridgeIP
+    [ValidateLength(20,50)][string] $APIKey
+    [psobject] $Data
+
+    ###############
+    # CONSTRUCTOR #
+    ###############
+
+    HueSensor([ipaddress] $Bridge, [string] $API) {
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $API
+    }
+
+    HueSensor([string] $Name, [ipaddress] $Bridge, [string] $API) {
+        $this.SensorFriendlyName = $Name
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $API
+        $this.Sensor = $this.GetHueSensor($Name)
+        $this.GetStatus()
+    }
+
+    [PSCustomObject] GetAllSensors() {
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+        $Result = $null
+        Try {
+            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors"
+        }
+        Catch {
+            $this.ReturnError('GetAllSensors(): An error occurred while getting sensor data.'+$_)
+        }
+        Return $Result
+    }
+
+    [array] GetSensorNames() {
+        $Result = $null
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+        Try {
+            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors"
+        }
+        Catch {
+            $this.ReturnError('GetSensorNames(): An error occurred while getting sensor names.'+$_)
+        }
+        $Sensors = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        Return $Sensors.Value.Name
+    }
+
+
+    # Gets a sensor's number from the Bridge.
+    hidden [int] GetHueSensor([string] $Name) {
+        If (!($Name)) { Throw "No sensor name was specified." }
+        # Change the named sensor in to the integer used by the bridge. We use this throughout.
+        $HueData = $null
+        Try {
+            $HueData = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors"
+        }
+        Catch {
+            $this.ReturnError('GetHueSensor([string] $Name): An error occurred while getting sensor information.'+$_)
+        }
+        $Sensors = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        $this.Sensor = $Sensors | Where-Object {$_.Value.Name -match $Name}  | Select Name -ExpandProperty Name
+        If ($this.Sensor) {
+            Return $this.Sensor
+        }
+        Else {
+            Throw "No sensor name matching `"$Name`" was found in the Hue Bridge `"$($this.BridgeIP)`".`r`nTry using [HueBridge]::GetSensorNames() to get a full list of sensor names in this Hue Bridge."
+        }
+    }
+
+    # Gets a sensor's data.
+    hidden [void] GetStatus() {
+        # Get the current values of the sensor data
+        If (!($this.Sensor)) { Throw "No sensor is specified." }
+        $Status = $null
+        Try {
+            $Status = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors/$($this.Sensor)"
+        }
+        Catch {
+            $this.ReturnError('GetStatus(): An error occurred while getting the status of the sensor.'+$_)
+        }
+
+        $this.Data = $Status        
+    }
+
 }
