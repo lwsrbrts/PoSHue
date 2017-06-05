@@ -1328,7 +1328,7 @@ Class HueSensor : ErrorHandler {
     }
 
     # Gets a sensor's data.
-    hidden [void] GetStatus() {
+    [void] GetStatus() {
         # Get the current values of the sensor data
         If (!($this.Sensor)) { Throw "No sensor is specified." }
         $Status = $null
