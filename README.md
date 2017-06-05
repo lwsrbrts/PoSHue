@@ -511,6 +511,101 @@ PS C:\>$Light.SetHueLight([int] $XYB.b, [float] $XYB.x, [float] $XYB.y) # Return
 #### How do I know what Gamut my lamp/bulb is?!
 For some reason, Philips hide this information behind a login page on their Hue developer site. I imagine they wouldn't be pleased if I reproduced it here so I'll [just provide a link instead](http://www.developers.meethue.com/documentation/supported-lights). I'm sure a Google search will turn up the information you need also. Valid Gamut values for use in the `.xybForModel()` method are obtained from the `[Gamut]` enumeration, these are: `GamutA` | `GamutB` | `GamutC` | `GamutDefault` | 
 
+#### HueSensor Class
+The `HueSensor` class allows you to get the properties of a sensor. Since this changes with each type of sensor, the class is quite generic and does not set individual properties to access directly from the object. Instead, you access the sensor's properties from the `Data` property of the object. When you instantiate the `[HueSensor]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the _name_ of the Hue Sensor you want the properties of.
+The `HueSensor` class includes some static methods to allow you to obtain the names of all of the sensors on your bridge. You can instantiate an object using only the IP address of your bridge and an API Key.
+There are obviously some restrictions on what values you can set for the light and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware rather than me, I just repeat those limits within the code.
+  
+  1. Instantiate the `[HueSensor]` class only without a sensor name then search for all sensors.
+
+```powershell
+ PS C:\>$Sensor = [HueSensor]::New('192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
+ PS C:\>$Sensor.GetAllSensors()
+<#
+1  : @{state=; config=; name=Daylight; type=Daylight; modelid=PHDL00; manufacturername=Philips; swversion=1.0}
+4  : @{state=; config=; name=Hue tap switch 1; type=ZGPSwitch; modelid=ZGPSWITCH; manufacturername=Philips;
+     uniqueid=00:00:00:00:00:4xxx}
+5  : @{state=; config=; name=Wake Up; type=CLIPGenericFlag; modelid=WAKEUP;
+     manufacturername=xxxx; swversion=A_01033370; uniqueid=L_04_sTxx; recycle=False}
+6  : @{state=; config=; name=Hue dimmer switch 1; type=ZLLSwitch; modelid=RWL021; manufacturername=Philips;
+     swversion=5.45.1.16265; uniqueid=00:17:88:01:10:3f:b8:xxx}
+7  : @{state=; config=; name=Hue dimmer switch 2; type=ZLLSwitch; modelid=RWL021; manufacturername=Philips;
+     swversion=5.45.1.16265; uniqueid=00:17:88:01:10:3f:b8:5f-02-fc00}
+8  : @{state=; config=; name=Dimmer Switch 6 SceneCycle; type=CLIPGenericStatus; modelid=PHWA01;
+     manufacturername=xxxx; swversion=1.0; uniqueid=WA00xx1; recycle=True}
+9  : @{state=; config=; name=Dimmer Switch 7 SceneCycle; type=CLIPGenericStatus; modelid=PHWA01;
+     manufacturername=xxxx; swversion=1.0; uniqueid=WA0xxx1; recycle=True}
+10 : @{state=; config=; name=Wake up Weekend; type=CLIPGenericFlag; modelid=WAKEUP;
+     manufacturername=r9dMLjMmZSsWezQG4JA3jUBMte6Jd2Ol; swversion=A_01033370; uniqueid=L_04_paxxxR; recycle=False}
+11 : @{state=; config=; name=Monday Wake up; type=CLIPGenericFlag; modelid=WAKEUP;
+     manufacturername=r9dMLjMmZSsWezQG4JA3jUBMte6Jd2Ol; swversion=A_01033978; uniqueid=L_04_xxxbhv; recycle=False}
+16 : @{state=; config=; name=Hue temperature sensor 1; type=ZLLTemperature; modelid=SML001; manufacturername=Philips;
+     swversion=6.1.0.18912; uniqueid=00:17:88:01:02:03:80:xxx}
+17 : @{state=; config=; name=Kitchen sensor; type=ZLLPresence; modelid=SML001; manufacturername=Philips;
+     swversion=6.1.0.18912; uniqueid=00:17:88:01:02:03:80:xxx}
+18 : @{state=; config=; name=Hue ambient light sensor 1; type=ZLLLightLevel; modelid=SML001; manufacturername=Philips;
+     swversion=6.1.0.18912; uniqueid=00:17:88:01:02:03:80:xxx}
+21 : @{state=; config=; name=presenceState; type=CLIPGenericStatus; modelid=HUELABSENUM; manufacturername=Philips;
+     swversion=1.0; uniqueid=3:538e-e3cd-432axxx; recycle=True}
+#>
+```
+  2. Or get a list of all the sensor names without the additional data.
+```powershell
+PS C:\>$Sensor.GetSensorNames()
+<#
+Daylight
+Hue tap switch 1
+Wake Up
+Hue dimmer switch 1
+Hue dimmer switch 2
+Dimmer Switch 6 SceneCycle
+Dimmer Switch 7 SceneCycle
+Wake up Weekend
+Monday Wake up
+Hue temperature sensor 1
+Kitchen sensor
+Hue ambient light sensor 1
+presenceState
+#>
+ ```
+
+ 3. Once you know the name of the sensor you're interested in, instantiate the `[HueSensor]` class, providing the necessary details. Obviously you can specify these as variables if you like.
+ 
+ ```powershell
+ PS C:\>$Sensor = [HueSensor]::New('Hue temperature sensor 1', '192.168.1.12', '38cbd1cbcac542f9c26ad393739b7')
+ PS C:\>$Sensor
+ <#
+ Sensor             : 16
+SensorFriendlyName : Hue temperature sensor 1
+BridgeIP           : 192.168.1.12
+APIKey             : 38cbd1cbcac542f9c26ad393739b7
+Data               : @{state=; config=; name=Hue temperature sensor 1; type=ZLLTemperature; modelid=SML001;
+                     manufacturername=Philips; swversion=6.1.0.18912; uniqueid=00:17:88:01:02:03:80:2a-02-0402}
+ #>
+ ```
+
+  4. Once you have the sensor in an object, you can access its state data from the Data property of the object.
+
+  ```powershell
+  PS C:\>$Sensor.Data.state
+  <#
+  temperature lastupdated
+  ----------- -----------
+         1909 2017-06-05T16:45:04
+  #>
+  ```
+
+  5. To update the state data without having to refresh the object, simply call the `GetStatus()` method.
+
+  ```powershell
+  PS C:\>$Sensor.GetStatus()
+  <#
+  temperature lastupdated
+  ----------- -----------
+         1895 2017-06-05T16:50:03
+  #>
+  ```
+
 
 ## End to end basic example
 The following example uses the `[HueLight]` class to turn on the lamp called Hue go 2 if it isn't already on and then sets an RGB colour (Royal Blue) by converting it to XY and finally sending the command to the light (via the bridge).
