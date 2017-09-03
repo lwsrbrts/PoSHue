@@ -179,7 +179,9 @@ Class HueLight : ErrorHandler {
     [ValidateRange(0,65535)][int] $Hue
     [ValidateRange(0,254)][int] $Saturation
     [ValidateRange(153,500)][int] $ColourTemperature
-    [hashtable] $XY = @{ x = $null; y = $null }
+    [hashtable] $XY = @{ x = $null; y = $null }    
+    [bool] $Reachable
+
     [ColourMode] $ColourMode
     [AlertType] $AlertEffect
 
@@ -261,12 +263,25 @@ Class HueLight : ErrorHandler {
         }
 
         $this.On = $Status.state.on
-        $this.Brightness = $Status.state.bri
+        
+		# If Light is not reachable, set On = false
+        if (!($status.state.reachable)) {$this.On = $status.state.reachable}        
+		$this.Reachable = $Status.state.reachable
+        
+		# This is for compatibility reasons on Philips Ambient Lights
+		if ($Status.state.bri -ge 1) {$this.Brightness = $Status.state.bri}
+
         $this.Hue = $Status.state.hue
         $this.Saturation = $Status.state.sat
         $this.ColourMode = $Status.state.colormode
-        $this.XY.x = $Status.state.xy[0]
-        $this.XY.y = $Status.state.xy[1]
+
+        # This is for compatibility reasons on Philips Ambient Lights
+        if ($Status.state.colormode -eq "xy") 
+        {
+            $this.XY.x = $Status.state.xy[0]
+            $this.XY.y = $Status.state.xy[1]
+        }
+
         If ($Status.state.ct) {
             <#
             My Hue Go somehow got itself to a colour temp of "15" which is supposed 
