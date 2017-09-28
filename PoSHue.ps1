@@ -1291,6 +1291,10 @@ Class HueSensor : ErrorHandler {
         $this.GetStatus()
     }
 
+    ###########
+    # METHODS #
+    ###########
+
     [PSCustomObject] GetAllSensors() {
         If (!($this.APIKey)) {
             Throw "This operation requires the APIKey property to be set."
@@ -1319,7 +1323,6 @@ Class HueSensor : ErrorHandler {
         $Sensors = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         Return $Sensors.Value.Name
     }
-
 
     # Gets a sensor's number from the Bridge.
     hidden [int] GetHueSensor([string] $Name) {
