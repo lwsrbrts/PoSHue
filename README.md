@@ -1,16 +1,23 @@
 # PoSHue
-A couple of PowerShell classes (yes, really) that assist in getting simpler access to Philips Hue Luminaires using the REST API of the Hue Bridge.
+PowerShell classes (yes, really) that simplify interaction and scripting of actions for Philips Hue products such as Bridge, Lights, Groups and Sensors.
 
-Now a listed tool on [Philips' developer site](http://www.developers.meethue.com/tools-and-sdks). Lonely by itself under the PowerShell section!
+```powershell
+$Bridge = [HueBridge]::new()
+$Light = [HueLight]::new()
+$Group = [HueGroup]::new()
+$Sensor = [HueSensor]::new()
+```
 
-**Now [available as a module from the PowerShell Gallery](https://www.powershellgallery.com/packages/PoSHue).**
+A listed tool on [Philips' developer site](http://www.developers.meethue.com/tools-and-sdks). Lonely by itself under the PowerShell section!
+
+[Available as a module from the PowerShell Gallery](https://www.powershellgallery.com/packages/PoSHue)
 
 ```powershell
 Install-Module -Name PoSHue -Scope CurrentUser
 ```
 
 ## Why?
-I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go (x2) and Bloom) and I wanted a way of controlling them using PowerShell but fiddling with JSON every time I wanted to control them seemed a bit verbose. I've boiled down the basic actions to make it simple to use PowerShell to access the RESTful API on the bridge. Using PowerShell means you can script lighting changes quickly and easily and use Windows' own native task scheduler to run the scripts whenever you like.
+I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go (x4), Bloom and LightStrip Plus) and I wanted a way of controlling them using PowerShell but fiddling with JSON every time I wanted to control them seemed a bit verbose. I've boiled down the basic actions to make it simple to use PowerShell to access the RESTful API on the bridge. Using PowerShell means you can script lighting changes quickly and easily and use Windows' own native task scheduler to run the scripts whenever you like.
 
 ## Go on then, how do I use it?
 ### Pre-requisites
@@ -21,7 +28,7 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go (x2) and Bloom) and I w
 
 ---
 
-### Using it
+# Using it
 Install the module from the PowerShell Gallery.
 ```powershell
 Install-Module -Name PoSHue -Scope CurrentUser # Installs the latest version of the module from the PowerShell Gallery
@@ -37,7 +44,7 @@ Import-Module -Name PoSHue
 
 ---
 
-#### HueBridge Class
+# HueBridge Class
 Let's start with the `[HueBridge]` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the `[HueLight]` class later.
  1. Get the IP address of your Bridge. The `[HueBridge]` class contains a static method (this means you can call it without instantiating the class) called `.FindHueBridge()`.
  2. Run
@@ -97,7 +104,7 @@ Let's start with the `[HueBridge]` class. Use this to get an APIKey/username fro
 
 ---
 
-#### HueGroup Class
+# HueGroup Class
 The HueGroup class allows you to create, edit and delete groups. Although not documented, the HueGroup also allows you to control brightness, hue, saturation and XY values of light groups and rooms in the same way as individual lights.
 To get started with the HueGroup class, instantiate it. There are two constructors for the HueGroup class, one requires the name of an existing group. The other does not and is intended for the purposes of managing groups where you do not specifically want to instantiate from an existing group first.
 
@@ -310,10 +317,7 @@ PS C:\>$Group.SetHueGroup(150, 45500, 150) # Returns [string] Success
 ```
 ---
 
-
-
-
-#### HueLight Class
+# HueLight Class
 The HueLight class allows you to set properties of a light (the interesting stuff!) like Brightness, XY, Hue & Saturation and Colour Temperature. When you instantiate the `[HueLight]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the _name_ of the Hue Light you want to control.
 There are obviously some restrictions on what values you can set for the light and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware rather than me, I just repeat those limits within the code.
  1. Instantiate the `[HueLight]` class, providing the necessary details. Obviously you can specify these as variables if you like.
@@ -512,7 +516,7 @@ PS C:\>$Light.SetHueLight([int] $XYB.b, [float] $XYB.x, [float] $XYB.y) # Return
 #### How do I know what Gamut my lamp/bulb is?!
 For some reason, Philips hide this information behind a login page on their Hue developer site. I imagine they wouldn't be pleased if I reproduced it here so I'll [just provide a link instead](http://www.developers.meethue.com/documentation/supported-lights). I'm sure a Google search will turn up the information you need also. Valid Gamut values for use in the `.xybForModel()` method are obtained from the `[Gamut]` enumeration, these are: `GamutA` | `GamutB` | `GamutC` | `GamutDefault` | 
 
-#### HueSensor Class
+#  HueSensor Class
 The `HueSensor` class allows you to get the properties of a sensor. Since this changes with each type of sensor, the class is quite generic and does not set individual properties to access directly from the object. Instead, you access the sensor's properties from the `Data` property of the object. When you instantiate the `[HueSensor]` class, you do so by providing the IP Address of your bridge, the APIKey/username and the _name_ of the Hue Sensor you want the properties of.
 The `HueSensor` class includes some static methods to allow you to obtain the names of all of the sensors on your bridge. You can instantiate an object using only the IP address of your bridge and an API Key.
 There are obviously some restrictions on what values you can set for the light and these restrictions are imposed using the object's properties. These are limits imposed by the capabilities of the hardware rather than me, I just repeat those limits within the code.
