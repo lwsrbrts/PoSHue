@@ -6,7 +6,7 @@ Now a listed tool on [Philips' developer site](http://www.developers.meethue.com
 **Now [available as a module from the PowerShell Gallery](https://www.powershellgallery.com/packages/PoSHue).**
 
 ```powershell
-Install-Module -Name PoSHue
+Install-Module -Name PoSHue -Scope CurrentUser
 ```
 
 ## Why?
@@ -14,8 +14,9 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go (x2) and Bloom) and I w
 
 ## Go on then, how do I use it?
 ### Pre-requisites
- * [WMF/PowerShell 5.0](https://www.microsoft.com/en-us/download/details.aspx?id=50395) (this went RTM (again) on 24th February 2016) 
- * You need to be on your LAN with the Hue Bridge, obviously.
+ * [WMF/PowerShell 5.0](https://www.microsoft.com/en-us/download/details.aspx?id=50395) (this went RTM (again) on 24th February 2016)
+ * or [PowerShell Core 6.0.0](https://github.com/PowerShell/PowerShell/releases)
+ * You need to be on your LAN with the Hue Bridge acessible, obviously.
  * *I provide [`RGBtoXY.ps1`](../master/RGBtoXY.ps1) as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is _not_ included in releases or the module when installed from the PowerShell Gallery.* 
 
 ---
@@ -23,12 +24,12 @@ I have a few Philips Hue Luminaires (Beyond Lamp, Hue Go (x2) and Bloom) and I w
 ### Using it
 Install the module from the PowerShell Gallery.
 ```powershell
-Install-Module -Name PoSHue # Installs the latest version of the module from the PowerShell Gallery
+Install-Module -Name PoSHue -Scope CurrentUser # Installs the latest version of the module from the PowerShell Gallery
 ```
 
 Or you may wish to download the latest release and copy [`PoSHue.ps1`](../master/PoSHue.ps1) and [`PoSHue.psd1`](../master/PoSHue.psd1) to the same folder as your script (or somewhere else if you want!) and `Import-Module` on its location. If you are loading directly from just the `PoSHue.ps1` file, you may also need to `Add-Type -AssembylName System.Drawing` otherwise you will receive a parser error.
 
-####First lines
+#### First lines
 Assuming you've installed from the PowerShell Gallery, your starting script looks as follows.
 ```powershell
 Import-Module -Name PoSHue
