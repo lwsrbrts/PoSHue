@@ -243,7 +243,7 @@ Class HueLight : ErrorHandler {
             $this.ReturnError('GetHueLight([string] $Name): An error occurred while getting light information.'+$_)
         }
         $Lights = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        $this.Light = $Lights | Where-Object {$_.Value.Name -match $Name}  | Select Name -ExpandProperty Name
+        $this.Light = $Lights | Where-Object {$_.Value.Name -eq $Name}  | Select Name -ExpandProperty Name
         If ($this.Light) {
             Return $this.Light
         }
@@ -895,7 +895,7 @@ Class HueGroup : ErrorHandler {
             $this.ReturnError('GetLightGroup([string] $Name): An error occurred while getting light information.'+$_)
         }
         $Groups = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        $this.Group = $Groups | Where-Object {$_.Value.Name -match $Name}  | Select Name -ExpandProperty Name
+        $this.Group = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select Name -ExpandProperty Name
         If ($this.Group) {
             Return $this.Group
         }
@@ -1336,7 +1336,7 @@ Class HueSensor : ErrorHandler {
             $this.ReturnError('GetHueSensor([string] $Name): An error occurred while getting sensor information.'+$_)
         }
         $Sensors = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        $this.Sensor = $Sensors | Where-Object {$_.Value.Name -match $Name}  | Select Name -ExpandProperty Name
+        $this.Sensor = $Sensors | Where-Object {$_.Value.Name -eq $Name}  | Select Name -ExpandProperty Name
         If ($this.Sensor) {
             Return $this.Sensor
         }
