@@ -1360,4 +1360,23 @@ Class HueSensor : ErrorHandler {
         $this.Data = $Status        
     }
 
+    # Sets a sensor either on or off
+    [psobject] SwitchHueSensorState([bool] $State) {
+        # Get the current values of the sensor data
+        If (!($this.Sensor)) { Throw "No sensor is specified." }
+
+        $Settings = @{}
+        $Settings.Add("on", $State)
+        $Result = $null
+
+        Try {
+            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors/$($this.Sensor)/config" -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('SwitchHueSensorState([bool] $State): An error occurred while setting the sensor state.'+$_)
+        }
+        Return $Result
+       
+    }
+
 }
