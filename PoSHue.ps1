@@ -243,9 +243,9 @@ Class HueLight : ErrorHandler {
             $this.ReturnError('GetHueLight([string] $Name): An error occurred while getting light information.'+$_)
         }
         $Lights = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        $this.Light = $Lights | Where-Object {$_.Value.Name -eq $Name}  | Select Name -ExpandProperty Name
-        If ($this.Light) {
-            Return $this.Light
+        $SelectedLight = $Lights | Where-Object {$_.Value.Name -eq $Name}  | Select-Object Name -ExpandProperty Name
+        If ($SelectedLight) {
+            Return $SelectedLight
         }
         Else {
             Throw "No light name matching `"$Name`" was found in the Hue Bridge `"$($this.BridgeIP)`".`r`nTry using [HueBridge]::GetLightNames() to get a full list of light names in this Hue Bridge."
@@ -895,9 +895,9 @@ Class HueGroup : ErrorHandler {
             $this.ReturnError('GetLightGroup([string] $Name): An error occurred while getting light information.'+$_)
         }
         $Groups = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        $this.Group = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select Name -ExpandProperty Name
-        If ($this.Group) {
-            Return $this.Group
+        $SelectedGroup = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select-Object Name -ExpandProperty Name
+        If ($SelectedGroup) {
+            Return $SelectedGroup
         }
         Else {
             Throw "No group name matching `"$Name`" was found in the Hue Bridge `"$($this.BridgeIP)`".`r`nTry using [HueBridge]::GetLightGroups() to get a full list of groups in this Hue Bridge."
@@ -1336,9 +1336,9 @@ Class HueSensor : ErrorHandler {
             $this.ReturnError('GetHueSensor([string] $Name): An error occurred while getting sensor information.'+$_)
         }
         $Sensors = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        $this.Sensor = $Sensors | Where-Object {$_.Value.Name -eq $Name}  | Select Name -ExpandProperty Name
-        If ($this.Sensor) {
-            Return $this.Sensor
+        $SelectedSensor = $Sensors | Where-Object {$_.Value.Name -eq $Name}  | Select-Object Name -ExpandProperty Name
+        If ($SelectedSensor) {
+            Return $SelectedSensor
         }
         Else {
             Throw "No sensor name matching `"$Name`" was found in the Hue Bridge `"$($this.BridgeIP)`".`r`nTry using [HueBridge]::GetSensorNames() to get a full list of sensor names in this Hue Bridge."
