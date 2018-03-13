@@ -47,7 +47,7 @@ Enum RoomClass {
 }
 
 Class HueFactory {
-    # Base class defining a method for error handling which we can extend
+    # Base class defining methods shared amongst other classes
     hidden [hashtable] BuildRequestParams([string] $Method, [string] $Uri) {
         $ReqArgs = @{
             Method = $Method
@@ -65,6 +65,11 @@ Class HueFactory {
     hidden [void] ReturnError([string] $e) {
         Write-Error $e -ErrorAction Stop
     }
+
+    static [string] GetRemoteApiAccess() {
+        Return "To get an access token that permits this module to access your bridge`r`nvia the Philips Hue Remote API, please open a browser and visit https://www.lewisroberts.com/poshue"
+    }
+
 }
 
 Class HueBridge : HueFactory {
@@ -104,7 +109,7 @@ Class HueBridge : HueFactory {
     # METHODS #
     ###########
 
-    Static [PSObject] FindHueBridge() {
+    static [PSObject] FindHueBridge() {
         if ([System.Environment]::OSVersion.Platform -ne 'Win32NT') {
             Throw 'Searching for your Philips Hue bridge via UPnP is not currently possible on Unix and Mac platforms. Please consult your network equipment to discover the bridge IP address.'
         }

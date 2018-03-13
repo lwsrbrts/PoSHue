@@ -1,0 +1,43 @@
+<html>
+    <head>
+        <title>PoSHue - Philips Hue Remote Access Token</title>
+        <link rel="stylesheet" type="text/css" href="css/reset.css">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+    </head>
+    <body>
+        <p><img class="logo" src="img/poshue-logo.png" /></p>
+
+        <h1>What's this?</h1>
+
+        <p>Philips have now made available an <a href="https://en.wikipedia.org/wiki/Application_programming_interface">API</a> which allows you to control your Philips Hue lights remotely, using another application, 
+            such as a website, or my PowerShell module (class) that is not owned and operated by Philips themselves.</p> 
+
+        <p>If you're here, then it's likely you've arrived from use of my <a href="https://www.powershellgallery.com/packages/PoSHue/">PowerShell Module for controlling Philips Hue luminaires</a>
+            and want to be able to access and control those luminaires from a <b>remote</b> location that is not on the same Local Area Network (LAN)
+            as your Philips Hue Bridge.</p>
+
+        <h1>Why do I need to do this?</h1>
+
+        <p>In order to control your lights, groups and sensors remotely, you must send commands to your Hue Bridge via the Philips Hue Remote API. 
+            To do that, you must tell Philips that you trust <b>your</b> copy of the PosHue module to act on your behalf and you do that by creating an Access Token and providing it when using the module.</p>
+
+        <h1>Do I need to do this?</h1>
+
+        <p>If you intend to use the module from a computer on the same network as your Philips Hue Bridge, then no. 
+            If however you want to control your lights from an Azure Automation Runbook or a Linux server running in Amazon Web Services, then yes.</p>
+
+        <h1>What do I need to do?</h1>
+
+        <p>It's simple enough. Click the button below then log in to your <a href="https://account.meethue.com/">Philips Hue Account </a>. You'll be asked to grant permission to the PoSHue application.
+            The process of granting permission generates the access token (which looks like a random set of letters and numbers) which you can then use in the module.</p>
+            
+        <form action="/poshue.php" target="_blank">
+            <input class="authorise" type="submit" value="Get Access Token" />
+        </form>
+
+        <h1>What are you going to do with this token?</h1>
+
+        <p>Absolutely <b>nothing</b> at all. I don't see it, record it, store it, read it, use it or do anything with it whatsoever. 
+            As soon as you close the page with your token shown, that's it - gone. This is <b>your</b> token and <b>your responsibility</b> to keep secret.</p>
+    </body>
+</html>
