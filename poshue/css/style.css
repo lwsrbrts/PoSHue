@@ -38,8 +38,8 @@ b {
 .authorise:hover {background-color: #aaa}
 
 .authorise:active {
-  background-color: #999;
-  transform: translateY(1px);
+	background-color: #999;
+	transform: translateY(1px);
 	border: 1px solid #999
 }
 
@@ -51,4 +51,40 @@ pre {
 	font-family: 'Courier New', Courier, monospace;
 	font-size: 12px;
 	margin: 50px;
+}
+
+input {
+	border: 0px;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 14px;
+}
+
+form#tokens {
+    display: grid;
+    grid-template-columns: 150px 350px 70px;
+	grid-gap: 20px;
+}
+
+form#tokens label {
+	text-align: right;
+    grid-column: 1 / 1;
+}
+
+form#tokens input {
+	grid-column: 2 / 2;
+}
+
+form#tokens button {
+	grid-column: 3/ 3;
+	font: normal normal 400 16px 'Dosis';
+	background-color: #dcdcdc;
+	border: 1px solid #333;
+}
+
+form#tokens button:hover {background-color: #aaa}
+
+form#tokens button:active {
+	background-color: #999;
+	transform: translateY(1px);
+	border: 1px solid #999
 }
