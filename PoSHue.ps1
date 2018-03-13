@@ -46,23 +46,35 @@ Enum RoomClass {
     Other
 }
 
-Class ErrorHandler {
+Class HueFactory {
     # Base class defining a method for error handling which we can extend
-    # Return errors and terminates execution
+    hidden [hashtable] BuildRequestParams([string] $Method, [string] $Uri) {
+        $ReqArgs = @{
+            Method = $Method
+            Uri = $this.ApiUri + $Uri
+            ContentType = 'application/json'
+        }
+        if ($this.RemoteApiAccessToken) {
+            $ReqArgs.Add('Headers', @{Authorization = "Bearer $($this.RemoteApiAccessToken)"})
+        }
 
+        Return $ReqArgs
+    }
+
+    # Return errors and terminates execution
     hidden [void] ReturnError([string] $e) {
         Write-Error $e -ErrorAction Stop
     }
 }
 
-Class HueBridge : ErrorHandler {
+Class HueBridge : HueFactory {
     ##############
     # PROPERTIES #
     ##############
 
     [ipaddress] $BridgeIP
     [ValidateLength(20, 50)][string] $APIKey
-    [string] $RemoteApiAccessToken
+    [ValidateLength(20, 50)][string] $RemoteApiAccessToken
     [string] $ApiUri
 
     ###############
@@ -93,27 +105,21 @@ Class HueBridge : ErrorHandler {
     ###########
 
     Static [PSObject] FindHueBridge() {
+        if ([System.Environment]::OSVersion.Platform -ne 'Win32NT') {
+            Throw 'Searching for your Philips Hue bridge via UPnP is not currently possible on Unix and Mac platforms. Please consult your network equipment to discover the bridge IP address.'
+        }
         $UPnPFinder = New-Object -ComObject UPnP.UPnPDeviceFinder
         $UPnPDevices = $UPnPFinder.FindByType("upnp:rootdevice", 0) | Where-Object {$_.Description -match "Hue"} | Select-Object FriendlyName, PresentationURL, SerialNumber | Format-List
         Return $UPnPDevices
     }
-
-    hidden [hashtable] BuildRequestParams([string] $Method, [string] $Uri) {
-        
-        $ReqArgs = @{
-            Method = $Method
-            Uri = $this.ApiUri + $Uri
-            ContentType = 'application/json'
-        }
-        if ($this.RemoteApiAccessToken) {
-            $ReqArgs.Add('Headers', @{Authorization = "Bearer $($this.RemoteApiAccessToken)"})
-        }
-
-        Return $ReqArgs
-    }
-    
+  
     [string] GetNewAPIKey() {
-        $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api" -Body '{"devicetype":"PoSHue#PowerShell Hue"}'
+        if ($this.RemoteApiAccessToken) {
+            $ReqArgs = $this.BuildRequestParams('Post', '/0/config')
+            $Result = Invoke-RestMethod @ReqArgs -Body '{ "linkbutton":true }'
+        }
+        $ReqArgs = $this.BuildRequestParams('Post', '')
+        $Result = Invoke-RestMethod @ReqArgs -Body '{"devicetype":"PoSHue#PowerShell Hue"}'
         
         If ($Result[0].error) {
             Throw $Result[0].error.description
@@ -260,7 +266,7 @@ Class HueBridge : ErrorHandler {
 
 }
 
-Class HueLight : ErrorHandler {
+Class HueLight : HueFactory {
 
     ##############
     # PROPERTIES #
@@ -279,7 +285,7 @@ Class HueLight : ErrorHandler {
     [hashtable] $XY = @{ x = $null; y = $null }    
     [bool] $Reachable
     [string] $ApiUri
-    [string] $RemoteApiAccessToken
+    [ValidateLength(20, 50)][string] $RemoteApiAccessToken
     [ColourMode] $ColourMode
     [AlertType] $AlertEffect
 
@@ -318,10 +324,10 @@ Class HueLight : ErrorHandler {
     # CONSTRUCTOR #
     ###############
 
-    HueLight([string] $Name, [ipaddress] $Bridge, [string] $API) {
+    HueLight([string] $Name, [ipaddress] $Bridge, [string] $APIKey) {
         $this.LightFriendlyName = $Name
         $this.BridgeIP = $Bridge
-        $this.APIKey = $API
+        $this.APIKey = $APIKey
         $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
         $this.Light = $this.GetHueLight($Name)
         $this.GetStatus()
@@ -340,20 +346,6 @@ Class HueLight : ErrorHandler {
     ###########
     # METHODS #
     ###########
-
-    hidden [hashtable] BuildRequestParams([string] $Method, [string] $Uri) {
-        
-        $ReqArgs = @{
-            Method = $Method
-            Uri = $this.ApiUri + $Uri
-            ContentType = 'application/json'
-        }
-        if ($this.RemoteApiAccessToken) {
-            $ReqArgs.Add('Headers', @{Authorization = "Bearer $($this.RemoteApiAccessToken)"})
-        }
-
-        Return $ReqArgs
-    }
 
     hidden [int] GetHueLight([string] $Name) {
         If (!($Name)) { Throw "No light name was specified." }
@@ -974,7 +966,7 @@ Class HueLight : ErrorHandler {
 
 }
 
-Class HueGroup : ErrorHandler {
+Class HueGroup : HueFactory {
 
     ##############
     # PROPERTIES #
@@ -998,6 +990,8 @@ Class HueGroup : ErrorHandler {
     [string] $GroupType
     [bool] $AnyOn
     [bool] $AllOn
+    [string] $ApiUri
+    [ValidateLength(20, 50)][string] $RemoteApiAccessToken
 
     ###############
     # CONSTRUCTOR #
@@ -1012,6 +1006,17 @@ Class HueGroup : ErrorHandler {
         $this.GroupFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
+        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.Group = $this.GetLightGroup($Name)
+        $this.GetStatus()
+    }
+
+    # Constructor to return lights and names of lights remotely.
+    HueGroup([string] $Name, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.GroupFriendlyName = $Name
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "https://api.meethue.com/bridge/$($this.APIKey)"
         $this.Group = $this.GetLightGroup($Name)
         $this.GetStatus()
     }
@@ -1025,7 +1030,8 @@ Class HueGroup : ErrorHandler {
         # Change the named group in to the integer used by the bridge. We use this throughout.
         $Result = $null
         Try {
-            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups"
+            $ReqArgs = $this.BuildRequestParams('Get', "/groups")
+            $Result = Invoke-RestMethod @ReqArgs
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1039,7 +1045,7 @@ Class HueGroup : ErrorHandler {
             Return $SelectedGroup
         }
         Else {
-            Throw "No group name matching `"$Name`" was found in the Hue Bridge `"$($this.BridgeIP)`".`r`nTry using [HueBridge]::GetLightGroups() to get a full list of groups in this Hue Bridge."
+            Throw "No group name matching `"$Name`" was found in the Hue Bridge.`r`nTry using [HueBridge]::GetLightGroups() to get a full list of groups in this Hue Bridge."
         }
     }
 
@@ -1047,7 +1053,8 @@ Class HueGroup : ErrorHandler {
         # Get light groups.
 
         Try {
-            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups"
+            $ReqArgs = $this.BuildRequestParams('Get', "/groups")
+            $Result = Invoke-RestMethod @ReqArgs
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1067,7 +1074,8 @@ Class HueGroup : ErrorHandler {
         $Settings.Add("lights", $LightID)
 
         Try {
-            $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Post', "/groups")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1089,7 +1097,8 @@ Class HueGroup : ErrorHandler {
         $Settings.Add("lights", $LightID)
 
         Try {
-            $Result = Invoke-RestMethod -Method Post -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Post', "/groups")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1109,7 +1118,8 @@ Class HueGroup : ErrorHandler {
         $this.Group = $this.GetLightGroup($GroupName)
 
         Try {
-            $Result = Invoke-RestMethod -Method Delete -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)"
+            $ReqArgs = $this.BuildRequestParams('Delete', "/groups/$($this.Group)")
+            $Result = Invoke-RestMethod @ReqArgs
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1125,7 +1135,8 @@ Class HueGroup : ErrorHandler {
         If (!($this.Group)) { Throw "No group is specified." }
         $Status = $null
         Try {
-            $Status = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)"
+            $ReqArgs = $this.BuildRequestParams('Get', "/groups/$($this.Group)")
+            $Status = Invoke-RestMethod @ReqArgs
         }
         Catch {
             $this.ReturnError('GetStatus(): An error occurred while getting the status of the group.' + $_)
@@ -1166,7 +1177,8 @@ Class HueGroup : ErrorHandler {
         $Settings = @{}
         $Settings.Add("on", $this.On)
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)/action")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1189,7 +1201,8 @@ Class HueGroup : ErrorHandler {
         $Settings.Add("on", $this.On)
 
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)/action")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1215,7 +1228,8 @@ Class HueGroup : ErrorHandler {
         }
 
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)/action")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
             If ($Result.error) {
                 Throw $Result.error
             }
@@ -1235,7 +1249,8 @@ Class HueGroup : ErrorHandler {
         $Settings.Add("lights", $LightIDs)
 
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
             If ($Result.error -ne $null) {
                 Throw $Result.error
             }
@@ -1260,7 +1275,8 @@ Class HueGroup : ErrorHandler {
         $Settings = @{}
         $Settings.Add("bri", $this.Brightness)
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)/action")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
         }
         Catch {
             $this.ReturnError('SetHueGroup([int] $Brightness): An error occurred while setting the group brightness.' + $_)
@@ -1302,7 +1318,8 @@ Class HueGroup : ErrorHandler {
         $Settings.Add("xy", @($this.XY.x, $this.XY.y))
         $Settings.Add("bri", $this.Brightness)
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)/action")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
         }
         Catch {
             $this.ReturnError('SetHueGroup([int] $Brightness, [float] $X, [float] $Y): An error occurred while setting the group for XY.' + $_)
@@ -1339,7 +1356,8 @@ Class HueGroup : ErrorHandler {
         $Settings.Add("bri", $this.Brightness)
         $Settings.Add("ct", $this.ColourTemperature)
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)/action")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
         }
         Catch {
             $this.ReturnError('SetHueGroup([int] $Brightness, [int] $ColourTemperature): An error occurred while setting the group for colour temperature.' + $_)
@@ -1378,7 +1396,8 @@ Class HueGroup : ErrorHandler {
         $Settings.Add("hue", $this.Hue)
         $Settings.Add("sat", $this.Saturation)
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/groups/$($this.Group)/action" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Put', "/groups/$($this.Group)/action")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
         }
         Catch {
             $this.ReturnError('SetHueGroup([int] $Brightness, [int] $Hue, [int] $Saturation): An error occurred while setting the group for HSB.' + $_)
@@ -1403,7 +1422,7 @@ Class HueGroup : ErrorHandler {
     }
 }
 
-Class HueSensor : ErrorHandler {
+Class HueSensor : HueFactory {
 
     ##############
     # PROPERTIES #
@@ -1414,6 +1433,8 @@ Class HueSensor : ErrorHandler {
     [ipaddress] $BridgeIP
     [ValidateLength(20, 50)][string] $APIKey
     [psobject] $Data
+    [string] $ApiUri
+    [ValidateLength(20, 50)][string] $RemoteApiAccessToken
 
     ###############
     # CONSTRUCTOR #
@@ -1424,10 +1445,21 @@ Class HueSensor : ErrorHandler {
         $this.APIKey = $API
     }
 
-    HueSensor([string] $Name, [ipaddress] $Bridge, [string] $API) {
+    HueSensor([string] $Name, [ipaddress] $Bridge, [string] $APIKey) {
         $this.SensorFriendlyName = $Name
         $this.BridgeIP = $Bridge
-        $this.APIKey = $API
+        $this.APIKey = $APIKey
+        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.Sensor = $this.GetHueSensor($Name)
+        $this.GetStatus()
+    }
+
+    # Constructor to return lights and names of lights remotely.
+    HueSensor([string] $Name, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.SensorFriendlyName = $Name
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "https://api.meethue.com/bridge/$($this.APIKey)"
         $this.Sensor = $this.GetHueSensor($Name)
         $this.GetStatus()
     }
@@ -1442,7 +1474,8 @@ Class HueSensor : ErrorHandler {
         }
         $Result = $null
         Try {
-            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors"
+            $ReqArgs = $this.BuildRequestParams('Get', '/sensors')
+            $Result = Invoke-RestMethod @ReqArgs
         }
         Catch {
             $this.ReturnError('GetAllSensors(): An error occurred while getting sensor data.' + $_)
@@ -1456,7 +1489,8 @@ Class HueSensor : ErrorHandler {
             Throw "This operation requires the APIKey property to be set."
         }
         Try {
-            $Result = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors"
+            $ReqArgs = $this.BuildRequestParams('Get', '/sensors')
+            $Result = Invoke-RestMethod @ReqArgs
         }
         Catch {
             $this.ReturnError('GetSensorNames(): An error occurred while getting sensor names.' + $_)
@@ -1471,7 +1505,8 @@ Class HueSensor : ErrorHandler {
         # Change the named sensor in to the integer used by the bridge. We use this throughout.
         $HueData = $null
         Try {
-            $HueData = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors"
+            $ReqArgs = $this.BuildRequestParams('Get', '/sensors')
+            $HueData = Invoke-RestMethod @ReqArgs
         }
         Catch {
             $this.ReturnError('GetHueSensor([string] $Name): An error occurred while getting sensor information.' + $_)
@@ -1492,7 +1527,8 @@ Class HueSensor : ErrorHandler {
         If (!($this.Sensor)) { Throw "No sensor is specified." }
         $Status = $null
         Try {
-            $Status = Invoke-RestMethod -Method Get -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors/$($this.Sensor)"
+            $ReqArgs = $this.BuildRequestParams('Get', "/sensors/$($this.Sensor)")
+            $Status = Invoke-RestMethod @ReqArgs
         }
         Catch {
             $this.ReturnError('GetStatus(): An error occurred while getting the status of the sensor.' + $_)
@@ -1511,7 +1547,8 @@ Class HueSensor : ErrorHandler {
         $Result = $null
 
         Try {
-            $Result = Invoke-RestMethod -Method Put -Uri "http://$($this.BridgeIP)/api/$($this.APIKey)/sensors/$($this.Sensor)/config" -Body (ConvertTo-Json $Settings)
+            $ReqArgs = $this.BuildRequestParams('Get', "/sensors/$($this.Sensor)/config")
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
         }
         Catch {
             $this.ReturnError('SwitchHueSensorState([bool] $State): An error occurred while setting the sensor state.' + $_)
