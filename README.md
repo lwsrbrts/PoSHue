@@ -25,6 +25,7 @@ As an example: if your external IP address changes, make a light turn blue.
 ### Pre-requisites
  * [WMF/PowerShell 5.0](https://www.microsoft.com/en-us/download/details.aspx?id=50395) (this went RTM (again) on 24th February 2016)
  * or [PowerShell Core 6.0.0](https://github.com/PowerShell/PowerShell/releases)
+ * The module -> `Install-Module -Name PoSHue -Scope CurrentUser`
  * To use PoSHue when not on the same network as the Hue Bridge, you need to [generate an access token](https://www.youtube.com/watch?v=KxEgPtIuz2A "PoSHue: How to create and use a remote API access token") first.
  * *I provide [`RGBtoXY.ps1`](../master/RGBtoXY.ps1) as a standalone, easy to understand and run script file for the benefit of people looking to get an XY value from an RGB colour. This file is _not_ included in releases or the module when installed from the PowerShell Gallery.* 
 
@@ -60,9 +61,17 @@ Import-Module -Name PoSHue
 
 # HueBridge Class
 
-If you're using the Remote API, the following instructions will differ slightly.
-
 Let's start with the `[HueBridge]` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the `[HueLight]` class later.
+
+## Remote API Usage
+If you're using the remote API, you can generate a username/whitelist entry using just the Access Token and a properly instantiated Bridge object:
+
+```powershell
+$Bridge = [HueBridge]::new($RemoteAccessToken, $true)
+$Bridge.GetNewApiKey() # Gets a new API key via the remote API.
+```
+
+## Local API Usage
 
 1. Get the IP address of your Bridge. The `[HueBridge]` class contains a static method (this means you can call it without instantiating the class) called `.FindHueBridge()`.
 2. This line only works on Windows. If you're using a Mac or Linux, you will need to discover your Bridge's IP address using your network or router. Run
@@ -428,17 +437,22 @@ I included this to allow use of things like slow transitions from off to on, lik
 Not all Hue Lights support colour temperature - the class looks for the CT attribute, if it doesn't exist, this method will return an error advising that the light does not hold this setting and it therefore cannot be set.
 
  **Syntax**
+
  ```powershell
  [string] SetHueLight([int] $Brightness, [int] $ColourTemperature)
  ```
+
  **Usage**
+
  ```powershell
  PS C:\>$Light.SetHueLight(150, 380) # Returns [string] Success
  ```
   ---
  
 #### Specify the Brightness and/or Hue and/or Saturation
+
 **Syntax** 
+
 ```powershell
 [string] SetHueLight([int] $Brightness, [int] $Hue, [int] $Saturation)
 ```
@@ -469,10 +483,13 @@ A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/
 A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
 
 **Syntax**
+
 ```powershell
 [string] SetHueLightTransition([int] $Brightness, [float] $X, [float] $Y, [uint16] $TransitionTime)
 ```
+
 **Usage**
+
 ```powershell
 PS C:\>$Light.SetHueLightTransition(102, 0.1649, 0.1338, 20) # Returns [string] Success
 ```
@@ -484,29 +501,41 @@ A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/
 A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
 
 **Syntax**
+
 ```powershell
 [string] SetHueLightTransition([int] $Brightness, [int] $ColourTemperature, [uint16] $TransitionTime)
 ```
+
 **Usage**
+
 ```powershell
 PS C:\>$Light.SetHueLightTransition(200, 390, 20) # Returns [string] Success
 ```
+
 ---
+
 #### Change Brightness and/or Hue and/or Saturation with transition
+
 Change the brightness and/or Hue and/or Saturation over a defined period of time in multiples of 100 milliseconds.
 A transitiontime of 10 is therefore 1 second. Eg. `10 x 100ms = 1000ms` (1s)<br/>
 A transition time of 300 is 30 seconds. Eg. `300 x 100ms = 30000ms` (30s)
 
 **Syntax**
+
 ```powershell
 [string] SetHueLightTransition([int] $Brightness, [int] $Hue, [int] $Saturation, [uint16] $TransitionTime)
 ```
+
 **Usage**
+
 ```powershell
 PS C:\>$Light.SetHueLightTransition(150, 45500, 254, 300) # Returns [string] Success
 ```
+
 ---
+
 ### Retaining current settings
+
 To retain the same settings for one or more property such as Brightness, just use the existing property of the object and essentially, set it again.
 
 For example, the following command would retain the same colour temperature as already set in the object but set the brightness to 50:
