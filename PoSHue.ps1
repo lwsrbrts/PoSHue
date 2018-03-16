@@ -66,8 +66,42 @@ Class HueFactory {
     }
 
     static [string] GetRemoteApiAccess() {
-        Return "To get an access token that permits this module to access your bridge`r`nvia the Philips Hue Remote API, please open a browser and visit https://www.lewisroberts.com/poshue"
+        Return "To get an access token that permits this module to access your bridge via the Philips`r`nHue Remote API, please open a browser and visit https://www.lewisroberts.com/poshue"
     }
+
+    hidden [datetime] ConvertUnixTime([long] $Milliseconds) {
+        Return [System.DateTimeOffset]::FromUnixTimeMilliseconds($Milliseconds).LocalDateTime
+    }
+
+    hidden [string] $HueRemoteApiUri = 'https://api.meethue.com/bridge/'
+
+    
+    [pscustomobject] GetRemoteApiUsage() {
+        if (!($this.RemoteApiAccessToken)) {
+            Throw 'This method can only be used where the parent object is using the remote API.'
+        }
+
+        # Using a Web Request since Headers aren't available in Invoke-RestMethod in PS5.1
+        # 6.0+ would be Invoke-RestMethod @ReqParams -ResponseHeadersVariable HeaderVariable
+        $Result = Invoke-WebRequest -Method Get `
+                                    -Uri ("{0}{1}/{2}" -f $this.HueRemoteApiUri, $this.APIKey, 'lights') `
+                                    -Headers @{Authorization = "Bearer $($this.RemoteApiAccessToken)"} `
+                                    -ContentType 'application/json'
+
+        $QuotaObjects = $Result.Headers.Keys | Where-Object {$_ -match 'X-Quota'}
+
+        $Object = @{}
+        Foreach ($Item in $QuotaObjects) {
+            If ($Item -like '*Time*') {
+                $Object.Add($Item.ToString(), $this.ConvertUnixTime([long]$Result.Headers.Item($Item)[0]))
+                Continue
+            }
+
+            $Object.Add($Item.ToString(),$Result.Headers.Item($Item)[0])
+        }
+        Return $Object
+    }
+    
 
 }
 
@@ -101,14 +135,14 @@ Class HueBridge : HueFactory {
     # Use a Remote API session but without a username/whitelist entry.
     HueBridge([string] $RemoteApiAcccessToken, [bool]$RemoteSession) {
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
-        $this.ApiUri = "https://api.meethue.com/bridge/"
+        $this.ApiUri = $this.HueRemoteApiUri
     }
 
     # Use a Remote API session with a username/whitelist entry.
     HueBridge([string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
         $this.APIKey = $APIKey
-        $this.ApiUri = "https://api.meethue.com/bridge/$($this.APIKey)"
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
     }
 
     ###########
@@ -350,7 +384,7 @@ Class HueLight : HueFactory {
         $this.LightFriendlyName = $Name
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
         $this.APIKey = $APIKey
-        $this.ApiUri = "https://api.meethue.com/bridge/$($this.APIKey)"
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
         $this.Light = $this.GetHueLight($Name)
         $this.GetStatus()
     }
@@ -1009,12 +1043,14 @@ Class HueGroup : HueFactory {
     # CONSTRUCTOR #
     ###############
 
-    HueGroup([ipaddress] $Bridge, [string] $API) {
+    # Local constructor for new groups
+    HueGroup([string] $Bridge, [string] $API) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
+        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
     }
 
-    HueGroup([string] $Name, [ipaddress] $Bridge, [string] $API) {
+    HueGroup([string] $Name, [string] $Bridge, [string] $API) {
         $this.GroupFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
@@ -1023,12 +1059,19 @@ Class HueGroup : HueFactory {
         $this.GetStatus()
     }
 
+    # Remote API constructor for creation of new groups.
+    HueGroup([string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+    }
+
     # Constructor to return lights and names of lights remotely.
     HueGroup([string] $Name, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
         $this.GroupFriendlyName = $Name
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
         $this.APIKey = $APIKey
-        $this.ApiUri = "https://api.meethue.com/bridge/$($this.APIKey)"
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
         $this.Group = $this.GetLightGroup($Name)
         $this.GetStatus()
     }
@@ -1181,6 +1224,9 @@ Class HueGroup : HueFactory {
 
     # A simple toggle. If on, turn off. If off, turn on.
     [void] SwitchHueGroup() {
+        If (!($this.Group)) {
+            Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name."
+        }
         Switch ($this.On) {
             $false {$this.On = $true}
             $true {$this.On = $false}
@@ -1204,6 +1250,9 @@ Class HueGroup : HueFactory {
     # Set the state of the light. Always does what you give it, irrespective of the current setting.
     [void] SwitchHueGroup([LightState] $State) {
         # An overload for SwitchHueLight
+        If (!($this.Group)) {
+            Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name."
+        }
         Switch ($State) {
             On {$this.On = $true}
             Off {$this.On = $false}
@@ -1227,6 +1276,9 @@ Class HueGroup : HueFactory {
     # Set the state of the light (from off) for a transition - like a sunrise.
     [void] SwitchHueGroup([LightState] $State, [bool] $Transition) {
         # An overload for SwitchHueLight
+        If (!($this.Group)) {
+            Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name."
+        }
         Switch ($State) {
             On {$this.On = $true}
             Off {$this.On = $false}
@@ -1254,7 +1306,9 @@ Class HueGroup : HueFactory {
 
     # Change the attributes of a group
     [void] EditHueGroup([string] $Name, [string[]] $LightIDs) { 
-        If (!($this.Group)) { Throw 'The group must exist and be defined in this object before it can be changed. If you have not already, create the group or re-instantiate this object with an existing group name.' }
+        If (!($this.Group)) { 
+            Throw 'The group must exist and be defined in _this_ object before it can be changed. If you have not already, create the group or re-instantiate this object with an existing group name.'
+        }
         
         $Settings = @{}
         $Settings.Add("name", $Name)
@@ -1455,6 +1509,7 @@ Class HueSensor : HueFactory {
     HueSensor([ipaddress] $Bridge, [string] $API) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
+        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
     }
 
     HueSensor([string] $Name, [ipaddress] $Bridge, [string] $APIKey) {
@@ -1471,7 +1526,7 @@ Class HueSensor : HueFactory {
         $this.SensorFriendlyName = $Name
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
         $this.APIKey = $APIKey
-        $this.ApiUri = "https://api.meethue.com/bridge/$($this.APIKey)"
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
         $this.Sensor = $this.GetHueSensor($Name)
         $this.GetStatus()
     }
