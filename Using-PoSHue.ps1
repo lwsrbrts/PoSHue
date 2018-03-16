@@ -3,7 +3,7 @@ Add-Type -AssemblyName System.Drawing
 
 # Import the [HueBridge] and [HueLight] classes
 # so you can interact with them in your script.
-Import-Module ".\PoSHue.ps1"
+Import-Module ".\PoSHue.psd1"
 #Import-Module "$PSScriptRoot\PoSHue.ps1"
 
 # Hue Bridge IP address
@@ -48,6 +48,8 @@ $Bridge = [HueBridge]::New($Endpoint, $UserID)
 # from the bridge. Helps you check the current actual status
 # of lights and their settings.
 $Bridge.GetAllLights()
+
+$Bridge.GetAllLightsObject()
 
 # Get a list of friendly names of Hue Lights registered to the bridge.
 # Returns an [array] object of the light's names.

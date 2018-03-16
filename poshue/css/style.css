@@ -1,0 +1,90 @@
+@charset "utf-8";
+/* CSS Document */
+@import url(https://fonts.googleapis.com/css?family=Dosis:300,400,500,600);
+
+html, body, p {margin: 0; padding: 0;}
+
+a:link, a:visited, a:focus{ color: rgb(5, 2, 190); text-decoration: none; }
+a:hover{ color: rgb(113, 3, 185); text-decoration: none; }
+a:active{ color: rgb(44, 44, 44); text-decoration: none; }
+
+body {
+	font-family: 'Dosis', "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+	font-size: 18px;
+	margin: 40px;
+}
+
+h1 {
+	font-size: 200%;
+	margin: 40px 0;
+}
+
+b {
+	font-weight: bold;
+}
+
+
+.authorise {
+	width: 150px;
+	height: 60px;
+	margin: 10px 0;
+	padding: 10px;
+	font: normal normal 600 18px 'Dosis';
+	background-color: #dcdcdc;
+	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+	border: 1px solid #333;
+}
+
+.authorise:hover {background-color: #aaa}
+
+.authorise:active {
+	background-color: #999;
+	transform: translateY(1px);
+	border: 1px solid #999
+}
+
+p {
+	margin: 20px 20px 20px 0px;
+}
+
+pre {
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 12px;
+	margin: 50px;
+}
+
+input {
+	border: 0px;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 14px;
+}
+
+form#tokens {
+    display: grid;
+    grid-template-columns: 150px 350px 70px;
+	grid-gap: 20px;
+}
+
+form#tokens label {
+	text-align: right;
+    grid-column: 1 / 1;
+}
+
+form#tokens input {
+	grid-column: 2 / 2;
+}
+
+form#tokens button {
+	grid-column: 3/ 3;
+	font: normal normal 400 16px 'Dosis';
+	background-color: #dcdcdc;
+	border: 1px solid #333;
+}
+
+form#tokens button:hover {background-color: #aaa}
+
+form#tokens button:active {
+	background-color: #999;
+	transform: translateY(1px);
+	border: 1px solid #999
+}
