@@ -1559,7 +1559,7 @@ Class HueSensor : HueFactory {
         $Result = $null
 
         Try {
-            $ReqArgs = $this.BuildRequestParams('Get', "/sensors/$($this.Sensor)/config")
+            $ReqArgs = $this.BuildRequestParams('Put', "/sensors/$($this.Sensor)/config")
             $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
         }
         Catch {
