@@ -63,6 +63,8 @@ Import-Module -Name PoSHue
 
 Let's start with the `[HueBridge]` class. Use this to get an APIKey/username from your bridge so you can get and set light data with it using the `[HueLight]` class later.
 
+The "API key" referred to here is also known as a username or whitelist entry - it isn't the Remote API Access Token. This username/whitelist entry is a long living object and you only need to create it once. You can then use it against the Remote API (with an access token as well) or against the Local API (bridge on your LAN).
+
 ## Remote API Usage
 If you're using the remote API, you can generate a username/whitelist entry using just the Access Token and a properly instantiated Bridge object:
 
