@@ -89,6 +89,7 @@ Class HueBridge : HueFactory {
     # Constructor to return an API Key
     HueBridge([ipaddress] $Bridge) {
         $this.BridgeIP = $Bridge
+        $this.ApiUri = "http://$($this.BridgeIP)/api/"
     }
 
     # Constructor to return lights and names of lights.
@@ -96,6 +97,12 @@ Class HueBridge : HueFactory {
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
         $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+    }
+
+    # Constructor to return lights and names of lights remotely.
+    HueBridge([string] $RemoteApiAcccessToken, [bool] $RemoteSession) {
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.ApiUri = "https://api.meethue.com/bridge/"
     }
 
     # Constructor to return lights and names of lights remotely.
@@ -120,7 +127,7 @@ Class HueBridge : HueFactory {
   
     [string] GetNewAPIKey() {
         if ($this.RemoteApiAccessToken) {
-            $ReqArgs = $this.BuildRequestParams('Post', '/0/config')
+            $ReqArgs = $this.BuildRequestParams('Put', '/0/config')
             $Result = Invoke-RestMethod @ReqArgs -Body '{ "linkbutton":true }'
         }
         $ReqArgs = $this.BuildRequestParams('Post', '')
@@ -132,6 +139,7 @@ Class HueBridge : HueFactory {
         ElseIf ($Result[0].success) {
             # Assign the API Key and return it.
             $this.APIKey = $Result[0].success.username
+            $this.ApiUri = "$($this.ApiUri)$($this.APIKey)"
             Return $Result[0].success.username
         }
         Else {
