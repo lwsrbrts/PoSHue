@@ -57,7 +57,6 @@ Class HueFactory {
         if ($this.RemoteApiAccessToken) {
             $ReqArgs.Add('Headers', @{Authorization = "Bearer $($this.RemoteApiAccessToken)"})
         }
-
         Return $ReqArgs
     }
 
@@ -82,30 +81,30 @@ Class HueBridge : HueFactory {
     [ValidateLength(20, 50)][string] $RemoteApiAccessToken
     [string] $ApiUri
 
-    ###############
-    # CONSTRUCTOR #
-    ###############
+    ################
+    # CONSTRUCTORS #
+    ################
 
     # Constructor to return an API Key
-    HueBridge([ipaddress] $Bridge) {
+    HueBridge([string] $Bridge) {
         $this.BridgeIP = $Bridge
         $this.ApiUri = "http://$($this.BridgeIP)/api/"
     }
 
     # Constructor to return lights and names of lights.
-    HueBridge([ipaddress] $Bridge, [string] $APIKey) {
+    HueBridge([string] $Bridge, [string] $APIKey) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
         $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
     }
 
-    # Constructor to return lights and names of lights remotely.
-    HueBridge([string] $RemoteApiAcccessToken, [bool] $RemoteSession) {
+    # Use a Remote API session but without a username/whitelist entry.
+    HueBridge([string] $RemoteApiAcccessToken, [bool]$RemoteSession) {
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
         $this.ApiUri = "https://api.meethue.com/bridge/"
     }
 
-    # Constructor to return lights and names of lights remotely.
+    # Use a Remote API session with a username/whitelist entry.
     HueBridge([string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
         $this.APIKey = $APIKey
