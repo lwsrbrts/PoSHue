@@ -20,7 +20,7 @@ Enum AlertType {
 }
 
 Enum Gamut {
-    # Defines the accepted values when invoking the Breathe method.
+    # Defines the accepted gamut values when calculating RGB to XY conversions.
     GamutA
     GamutB
     GamutC
@@ -28,6 +28,7 @@ Enum Gamut {
 }
 
 Enum RoomClass {
+    # Defines the room classes that lights can belong to.
     Kitchen
     Dining
     Bedroom
@@ -185,13 +186,8 @@ Class HueBridge : HueFactory {
         If (!($this.APIKey)) {
             Throw "This operation requires the APIKey property to be set."
         }
-        Try {
-            $ReqArgs = $this.BuildRequestParams('Get', '/lights')
-            $Result = Invoke-RestMethod @ReqArgs
-        }
-        Catch {
-            $this.ReturnError('GetLightNames(): An error occurred while getting light names.' + $_)
-        }
+        $Result = $this.GetAllLights()
+
         $Lights = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         Return $Lights.Value.Name
     }
@@ -215,20 +211,15 @@ Class HueBridge : HueFactory {
         If (!($this.APIKey)) {
             Throw "This operation requires the APIKey property to be set."
         }
-        $Result = $null
-        Try {
-            $ReqArgs = $this.BuildRequestParams('Get', '/lights')
-            $Result = Invoke-RestMethod @ReqArgs
-        }
-        Catch {
-            $this.ReturnError('GetAllLightsObject(): An error occurred while getting light data.' + $_)
-        }
+
+        $Result = $this.GetAllLights()
 
         $CountLights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}).Count
 
-        $Object = for ($i = 1; $i -lt $CountLights; $i++) {
+        $Object = for ($i = 1; $i -lt $CountLights + 1; $i++) {
             $Property = [ordered]@{
                 Name         = $Result.$i.name
+                Id           = [int]$i
                 Type         = $Result.$i.type
                 IsOn         = $Result.$i.state.on
                 Brightness   = $Result.$i.state.bri
@@ -1083,17 +1074,7 @@ Class HueGroup : HueFactory {
     hidden [int] GetLightGroup([string] $Name) {
         If (!($Name)) { Throw "No group name was specified." }
         # Change the named group in to the integer used by the bridge. We use this throughout.
-        $Result = $null
-        Try {
-            $ReqArgs = $this.BuildRequestParams('Get', "/groups")
-            $Result = Invoke-RestMethod @ReqArgs
-            If ($Result.error) {
-                Throw $Result.error
-            }
-        }
-        Catch {
-            $this.ReturnError('GetLightGroup([string] $Name): An error occurred while getting light information.' + $_)
-        }
+        $Result = $this.GetLightGroups()
         $Groups = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         $SelectedGroup = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select-Object Name -ExpandProperty Name
         If ($SelectedGroup) {
@@ -1187,7 +1168,7 @@ Class HueGroup : HueFactory {
 
     hidden [void] GetStatus() {
         # Get the current values of the State, Hue, Saturation, Brightness and Colour Temperatures
-        If (!($this.Group)) { Throw "No group is specified." }
+        If (!($this.Group)) { Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name." }
         $Status = $null
         Try {
             $ReqArgs = $this.BuildRequestParams('Get', "/groups/$($this.Group)")
@@ -1332,7 +1313,7 @@ Class HueGroup : HueFactory {
     [string] SetHueGroup([int] $Brightness) {
         # Set the brightness values of all lights in the group.
         If (!($this.Group)) {
-            Throw 'No group specified. Instantiate an existing group first.'
+            Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name."
         }
         $Result = $null
 
@@ -1373,7 +1354,7 @@ Class HueGroup : HueFactory {
     [string] SetHueGroup([int] $Brightness, [float] $X, [float] $Y) {
         # Set brightness and XY values.
         If (!($this.Group)) {
-            Throw 'No group specified. Instantiate an existing group first.'
+            Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name."
         }
         $Result = $null
         $this.Brightness = $Brightness
@@ -1411,7 +1392,7 @@ Class HueGroup : HueFactory {
     [string] SetHueGroup([int] $Brightness, [int] $ColourTemperature) {
         # Set the brightness and colour temperature of the lights in the group.
         If (!($this.Group)) {
-            Throw 'No group specified. Instantiate an existing group first.'
+            Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name."
         }
 
         $Result = $null
@@ -1449,7 +1430,7 @@ Class HueGroup : HueFactory {
     [string] SetHueGroup([int] $Brightness, [int] $Hue, [int] $Saturation) {
         # Set the brightness, hue and saturation values of the light.
         If (!($this.Group)) {
-            Throw 'No group specified. Instantiate an existing group first.'
+            Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou probably wanted to instantiate with the group name."
         }
         $Result = $null
 
@@ -1570,14 +1551,7 @@ Class HueSensor : HueFactory {
     hidden [int] GetHueSensor([string] $Name) {
         If (!($Name)) { Throw "No sensor name was specified." }
         # Change the named sensor in to the integer used by the bridge. We use this throughout.
-        $HueData = $null
-        Try {
-            $ReqArgs = $this.BuildRequestParams('Get', '/sensors')
-            $HueData = Invoke-RestMethod @ReqArgs
-        }
-        Catch {
-            $this.ReturnError('GetHueSensor([string] $Name): An error occurred while getting sensor information.' + $_)
-        }
+        $HueData = $this.GetAllSensors()
         $Sensors = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         $SelectedSensor = $Sensors | Where-Object {$_.Value.Name -eq $Name}  | Select-Object Name -ExpandProperty Name
         If ($SelectedSensor) {
