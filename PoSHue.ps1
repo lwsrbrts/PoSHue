@@ -49,15 +49,25 @@ Enum RoomClass {
 
 Class HueFactory {
     # Base class defining methods shared amongst other classes
+
+    # Builds request parameters.
     hidden [hashtable] BuildRequestParams([string] $Method, [string] $Uri) {
+        $PSVersion = $global:PSVersionTable.PSVersion.Major
         $ReqArgs = @{
-            Method = $Method
-            Uri = $this.ApiUri + $Uri
+            Method      = $Method
+            Uri         = $this.ApiUri + $Uri
             ContentType = 'application/json'
         }
         if ($this.RemoteApiAccessToken) {
             $ReqArgs.Add('Headers', @{Authorization = "Bearer $($this.RemoteApiAccessToken)"})
         }
+        elseif ($PSVersion -ge 6) {
+            $ReqArgs.Add('SkipCertificateCheck', $true)
+        }
+        elseif ($PSVersion -eq 5) {
+            $this.ResolvePs51HttpsCompatibility()
+        }
+        
         Return $ReqArgs
     }
 
@@ -66,17 +76,20 @@ Class HueFactory {
         Write-Error $e -ErrorAction Stop
     }
 
+    # Simple string to help users get remote api access.
     static [string] GetRemoteApiAccess() {
         Return "To get an access token that permits this module to access your bridge via the Philips`r`nHue Remote API, please open a browser and visit https://www.lewisroberts.com/poshue"
     }
-
+    
+    # convert unix timestamps to local datetime objects
     hidden [datetime] ConvertUnixTime([long] $Milliseconds) {
         Return [System.DateTimeOffset]::FromUnixTimeMilliseconds($Milliseconds).LocalDateTime
     }
 
+    # a technically static entry to configure the location of the remote api1
     hidden [string] $HueRemoteApiUri = 'https://api.meethue.com/bridge/'
 
-    
+    # get quota from the remote api
     [pscustomobject] GetRemoteApiUsage() {
         if (!($this.RemoteApiAccessToken)) {
             Throw 'This method can only be used where the parent object is using the remote API.'
@@ -85,9 +98,9 @@ Class HueFactory {
         # Using a Web Request since Headers aren't available in Invoke-RestMethod in PS5.1
         # 6.0+ would be Invoke-RestMethod @ReqParams -ResponseHeadersVariable HeaderVariable
         $Result = Invoke-WebRequest -Method Get `
-                                    -Uri ("{0}{1}/{2}" -f $this.HueRemoteApiUri, $this.APIKey, 'lights') `
-                                    -Headers @{Authorization = "Bearer $($this.RemoteApiAccessToken)"} `
-                                    -ContentType 'application/json'
+            -Uri ("{0}{1}/{2}" -f $this.HueRemoteApiUri, $this.APIKey, 'lights') `
+            -Headers @{Authorization = "Bearer $($this.RemoteApiAccessToken)"} `
+            -ContentType 'application/json'
 
         $QuotaObjects = $Result.Headers.Keys | Where-Object {$_ -match 'X-Quota'}
 
@@ -98,12 +111,25 @@ Class HueFactory {
                 Continue
             }
 
-            $Object.Add($Item.ToString(),$Result.Headers.Item($Item)[0])
+            $Object.Add($Item.ToString(), $Result.Headers.Item($Item)[0])
         }
         Return $Object
     }
-    
 
+    # Some Windows PowerShell 5.1 specific code to handle move to HTTPS within Hue API 1.24.0
+    # Windows PowerShell 5.1 doesn't do well with self-signed certificates and needs to be
+    # forced to use TLS1.2 it seems.
+    # Second "if" may not be required since the same code run twice just returns the same class.
+    ResolvePs51HttpsCompatibility() {
+        $PSVersion = $global:PSVersionTable.PSVersion.Major
+        if (([System.Environment]::OSVersion.Platform -eq 'Win32NT') -and ($PSVersion -lt 6)) {
+           Add-Type -TypeDefinition "using System.Net; using System.Security.Cryptography.X509Certificates; public class TrustAllCertsPolicy : ICertificatePolicy { public bool CheckValidationResult(ServicePoint srvPoint, X509Certificate certificate, WebRequest request, int certificateProblem) {return true;} }"
+           [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+
+           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # Force use of TLS 1.2
+        }
+    }
+# End HueFactory
 }
 
 Class HueBridge : HueFactory {
@@ -296,6 +322,58 @@ Class HueBridge : HueFactory {
         }
         Catch {
             $this.ReturnError('GetAllSensors(): An error occurred while getting sensor data.' + $_)
+        }
+        Return $Result
+    }
+
+    [pscustomobject] GetBridgeConfig() {
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Get', '/config')
+            $Result = Invoke-RestMethod @ReqArgs
+        }
+        Catch {
+            $this.ReturnError('GetBridgeConfig(): An error occurred while getting bridge configuration.' + $_)
+        }
+        Return $Result
+    }
+
+    [pscustomobject] GetWhitelistEntry() {
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+        $Result = ($this.GetBridgeConfig()).whitelist
+
+        $Entries = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+
+        $Object = foreach ($Entry in $Entries) {
+            $Property = [ordered]@{
+                WhitelistId = $Entry.Name
+                Name = $Entry.Value.name
+                CreationDate = $Entry.Value.'create date'
+                LastUsed = $Entry.Value.'last use date'
+            }
+            # Create the new object.
+            New-Object -TypeName PSObject -Property $Property
+        }
+
+        Return $Object
+    }
+
+    [pscustomobject] RemoveWhitelistEntry([string] $WhitelistEntry) {
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Delete', "/config/whitelist/$($WhitelistEntry)")
+            $Result = Invoke-RestMethod @ReqArgs
+        }
+        Catch {
+            $this.ReturnError('RemoveWhitelistEntry(): An error occurred while deleting the whitelist entry from the bridge.' + $_)
         }
         Return $Result
     }
