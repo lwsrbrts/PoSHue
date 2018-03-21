@@ -72,6 +72,7 @@ form#tokens label {
 
 form#tokens input {
 	grid-column: 2 / 2;
+	width: 100%;
 }
 
 form#tokens button {
