@@ -448,6 +448,14 @@ Class HueLight : HueFactory {
         $this.GetStatus()
     }
 
+    HueLight([int] $LightId, [ipaddress] $Bridge, [string] $APIKey) {
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $APIKey
+        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.Light = $LightId
+        $this.GetStatus()
+    }
+
     # Constructor to return lights and names of lights remotely.
     HueLight([string] $Name, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
         $this.LightFriendlyName = $Name
@@ -455,6 +463,14 @@ Class HueLight : HueFactory {
         $this.APIKey = $APIKey
         $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
         $this.Light = $this.GetHueLight($Name)
+        $this.GetStatus()
+    }
+
+    HueLight([int] $LightId, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+        $this.Light = $LightId
         $this.GetStatus()
     }
 
@@ -489,15 +505,30 @@ Class HueLight : HueFactory {
         Try {
             $ReqArgs = $this.BuildRequestParams('Get', "/lights/$($this.Light)")
             $Status = Invoke-RestMethod @ReqArgs
+            if ($Status.error -ne $null) {
+                $Output = 'Error: '
+                Foreach ($e in $Status) {
+                    Switch ($e.error.type) {
+                        # add more for specific errors if desired.
+                        default {$Output += $e.error.description}
+                    }
+                }
+                Throw $Output
+            }
         }
         Catch {
-            $this.ReturnError('GetStatus(): An error occurred while getting the status of the light.' + $_)
+            $this.ReturnError('GetStatus(): An error occurred while getting the status of the light.'+"`r`n" + $_)
         }
 
         $this.On = $Status.state.on
+
+        # If LightFriendlyName is null, fill it since we are probably working with LightId directly.
+        if (!($this.LightFriendlyName)) {
+            $this.LightFriendlyName = $Status.name
+        }
         
         # If Light is not reachable, set On = false
-        if (!($status.state.reachable)) {$this.On = $status.state.reachable}        
+        if (!($Status.state.reachable)) {$this.On = $status.state.reachable}        
         $this.Reachable = $Status.state.reachable
         
         # This is for compatibility reasons on Philips Ambient Lights
@@ -1676,4 +1707,147 @@ Class HueSensor : HueFactory {
        
     }
 
+}
+
+Class HueScene : HueFactory {
+
+    ##############
+    # PROPERTIES #
+    ##############
+
+    [ValidateLength(2, 20)][string] $Scene
+    [ValidateLength(2, 80)][string] $SceneFriendlyName
+    [ipaddress] $BridgeIP
+    [ValidateLength(20, 50)][string] $APIKey
+    [psobject] $Data
+    [string] $ApiUri
+    [ValidateLength(20, 50)][string] $RemoteApiAccessToken
+
+    ###############
+    # CONSTRUCTOR #
+    ###############
+
+    HueScene([string] $Bridge, [string] $API) {
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $API
+        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+    }
+
+    HueScene([string] $Name, [string] $Bridge, [string] $APIKey) {
+        $this.SceneFriendlyName = $Name
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $APIKey
+        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.Scene = $this.GetHueScene($Name)
+        $this.GetStatus()
+    }
+
+    # Constructor to access data about scenes without specifying one remotely.
+    HueScene([string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+    }
+
+    # Constructor to return scene information remotely.
+    HueScene([string] $Name, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.SceneFriendlyName = $Name
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+        $this.Scene = $this.GetHueScene($Name)
+        $this.GetStatus()
+    }
+
+    ###########
+    # METHODS #
+    ###########
+
+    [psobject] GetAllScenes() {
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Get', '/scenes')
+            $Result = Invoke-RestMethod @ReqArgs
+        }
+        Catch {
+            $this.ReturnError('GetAllScenes(): An error occurred while getting scene data.' + $_)
+        }
+        Return $Result
+    }
+
+    [array] GetSceneNames() {
+        $Result = $this.GetAllScenes()
+        $Scenes = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        Return $Scenes.Name
+    }
+
+    # Gets a scene's id from the Bridge.
+    hidden [string] GetHueScene([string] $SceneID) {
+        If (!($SceneID)) { Throw "No scene name was specified." }
+        # Change the named scene in to the integer used by the bridge. We use this throughout.
+        $Result = $this.GetAllScenes()
+        $Scenes = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        $SelectedScene = $Scenes | Where-Object {$_.Name -eq $SceneID}  | Select-Object Name -ExpandProperty Name
+        If ($SelectedScene) {
+            Return $SelectedScene
+        }
+        Else {
+            Throw "No scene name matching `"$SceneID`" was found in the Hue Bridge.`r`nTry using [HueScene]::GetSceneNames() to get a full list of scene names in the Hue Bridge."
+        }
+    }
+
+    # Gets a scene's data.
+    [void] GetStatus() {
+        # Get the current values of the scene data
+        If (!($this.Scene)) { Throw "No scene is specified." }
+        $Status = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Get', "/scenes/$($this.Scene)")
+            $Status = Invoke-RestMethod @ReqArgs
+        }
+        Catch {
+            $this.ReturnError('GetScene(): An error occurred while getting the status of the scene.' + $_)
+        }
+
+        $this.Data = $Status        
+    }
+
+    # Extracts the scene information in to an easily parseable format for searching and filtering.
+    [psobject] GetAllScenesObject() {
+        $Result = $this.GetAllScenes()
+        $Scenes = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+
+        $Object = foreach ($Scene in $Scenes) {
+            $Property = [ordered]@{
+                SceneId = $Scene.Name
+                SceneName = $Scene.Value.name
+                LightsInScene = $Scene.Value.lights
+                LastUpdated = $Scene.Value.lastupdated
+                WhitelistOwner = $Scene.Value.owner
+                Locked = $Scene.Value.locked
+            }
+            # Create the new object.
+            New-Object -TypeName PSObject -Property $Property
+        }
+
+        Return $Object
+    }
+
+    [psobject] SetHueScene([string] $SceneID) { 
+        # Set a Hue Scene (collection of lights and their settings) - this is copied from the HueBridge class but is actually a Groups API method.
+        $Settings = @{}
+        $Settings.Add("scene", $SceneID)
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Put', '/groups/0/action')
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('SetHueScene([string] $SceneID): An error occurred while setting a scene.' + $_)
+        }
+        Return $Result
+    }
 }
