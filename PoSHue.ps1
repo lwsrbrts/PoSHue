@@ -7,6 +7,7 @@ Enum LightState {
 
 Enum ColourMode {
     # Defines the colour modes that can be set on the light.
+    none
     xy
     ct
     hs
@@ -544,6 +545,8 @@ Class HueLight : HueFactory {
                 $this.XY.x = $Status.state.xy[0]
                 $this.XY.y = $Status.state.xy[1]
             }
+        } else {
+                $this.ColourMode = 'none'
         }
 
         If ($Status.state.ct) {
