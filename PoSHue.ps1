@@ -138,7 +138,7 @@ Class HueBridge : HueFactory {
     ##############
 
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [ValidateLength(20, 50)][string] $RemoteApiAccessToken
     [string] $ApiUri
 
@@ -390,7 +390,7 @@ Class HueLight : HueFactory {
     [ValidateLength(1, 2)][string] $Light
     [ValidateLength(2, 80)][string] $LightFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [ValidateLength(1, 2000)][string] $JSON
     [bool] $On
     [ValidateRange(1, 254)][int] $Brightness
@@ -1121,7 +1121,7 @@ Class HueGroup : HueFactory {
     [ValidateLength(1, 2)][string] $Group
     [ValidateLength(2, 80)][string] $GroupFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [ValidateLength(1, 2000)][string] $JSON
     [bool] $On
     [ValidateRange(1, 254)][int] $Brightness
@@ -1587,7 +1587,7 @@ Class HueSensor : HueFactory {
     [ValidateLength(1, 2)][string] $Sensor
     [ValidateLength(2, 80)][string] $SensorFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [psobject] $Data
     [string] $ApiUri
     [ValidateLength(20, 50)][string] $RemoteApiAccessToken
@@ -1718,7 +1718,7 @@ Class HueScene : HueFactory {
     [ValidateLength(2, 20)][string] $Scene
     [ValidateLength(2, 80)][string] $SceneFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [psobject] $Data
     [string] $ApiUri
     [ValidateLength(20, 50)][string] $RemoteApiAccessToken
