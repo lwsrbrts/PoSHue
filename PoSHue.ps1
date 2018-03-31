@@ -240,23 +240,21 @@ Class HueBridge : HueFactory {
 
         $Result = $this.GetAllLights()
 
-        $CountLights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}).Count
-
-        $Object = for ($i = 1; $i -lt $CountLights + 1; $i++) {
+            $Object = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"} | ForEach-Object {
             $Property = [ordered]@{
-                Name         = $Result.$i.name
-                Id           = [int]$i
-                Type         = $Result.$i.type
-                IsOn         = $Result.$i.state.on
-                Brightness   = $Result.$i.state.bri
-                Hue          = $Result.$i.state.hue
-                Saturation   = $Result.$i.state.sat
-                ColourTemp   = $Result.$i.state.ct
-                XY           = $Result.$i.state.xy
-                ColorMode    = $Result.$i.state.colormode
-                Reachable    = $Result.$i.state.reachable
-                ModelId      = $Result.$i.modelid
-                Manufacturer = $Result.$i.manufacturername
+                Name         = $_.Value.name
+                Id           = $_.Name
+                Type         = $_.Value.type
+                IsOn         = $_.Value.state.on
+                Brightness   = $_.Value.state.bri
+                Hue          = $_.Value.state.hue
+                Saturation   = $_.Value.state.sat
+                ColourTemp   = $_.Value.state.ct
+                XY           = $_.Value.state.xy
+                ColorMode    = $_.Value.state.colormode
+                Reachable    = $_.Value.state.reachable
+                ModelId      = $_.Value.modelid
+                Manufacturer = $_.Value.manufacturername
             }
             # Create the new object.
             New-Object -TypeName PSObject -Property $Property
