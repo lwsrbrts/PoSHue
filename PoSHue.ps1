@@ -138,7 +138,7 @@ Class HueBridge : HueFactory {
     ##############
 
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [ValidateLength(20, 50)][string] $RemoteApiAccessToken
     [string] $ApiUri
 
@@ -240,23 +240,21 @@ Class HueBridge : HueFactory {
 
         $Result = $this.GetAllLights()
 
-        $CountLights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}).Count
-
-        $Object = for ($i = 1; $i -lt $CountLights + 1; $i++) {
+            $Object = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"} | ForEach-Object {
             $Property = [ordered]@{
-                Name         = $Result.$i.name
-                Id           = [int]$i
-                Type         = $Result.$i.type
-                IsOn         = $Result.$i.state.on
-                Brightness   = $Result.$i.state.bri
-                Hue          = $Result.$i.state.hue
-                Saturation   = $Result.$i.state.sat
-                ColourTemp   = $Result.$i.state.ct
-                XY           = $Result.$i.state.xy
-                ColorMode    = $Result.$i.state.colormode
-                Reachable    = $Result.$i.state.reachable
-                ModelId      = $Result.$i.modelid
-                Manufacturer = $Result.$i.manufacturername
+                Name         = $_.Value.name
+                Id           = $_.Name
+                Type         = $_.Value.type
+                IsOn         = $_.Value.state.on
+                Brightness   = $_.Value.state.bri
+                Hue          = $_.Value.state.hue
+                Saturation   = $_.Value.state.sat
+                ColourTemp   = $_.Value.state.ct
+                XY           = $_.Value.state.xy
+                ColorMode    = $_.Value.state.colormode
+                Reachable    = $_.Value.state.reachable
+                ModelId      = $_.Value.modelid
+                Manufacturer = $_.Value.manufacturername
             }
             # Create the new object.
             New-Object -TypeName PSObject -Property $Property
@@ -390,12 +388,12 @@ Class HueLight : HueFactory {
     [ValidateLength(1, 2)][string] $Light
     [ValidateLength(2, 80)][string] $LightFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [ValidateLength(1, 2000)][string] $JSON
     [bool] $On
-    [ValidateRange(1, 254)][int] $Brightness
+    [ValidateRange(0, 255)][int] $Brightness
     [ValidateRange(0, 65535)][int] $Hue
-    [ValidateRange(0, 254)][int] $Saturation
+    [ValidateRange(0, 255)][int] $Saturation
     [ValidateRange(153, 500)][int] $ColourTemperature
     [hashtable] $XY = @{ x = $null; y = $null }    
     [bool] $Reachable
@@ -1121,12 +1119,12 @@ Class HueGroup : HueFactory {
     [ValidateLength(1, 2)][string] $Group
     [ValidateLength(2, 80)][string] $GroupFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [ValidateLength(1, 2000)][string] $JSON
     [bool] $On
-    [ValidateRange(1, 254)][int] $Brightness
+    [ValidateRange(0, 255)][int] $Brightness
     [ValidateRange(0, 65535)][int] $Hue
-    [ValidateRange(0, 254)][int] $Saturation
+    [ValidateRange(0, 255)][int] $Saturation
     [ValidateRange(153, 500)][int] $ColourTemperature
     [hashtable] $XY = @{ x = $null; y = $null }
     [ColourMode] $ColourMode
@@ -1587,7 +1585,7 @@ Class HueSensor : HueFactory {
     [ValidateLength(1, 2)][string] $Sensor
     [ValidateLength(2, 80)][string] $SensorFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [psobject] $Data
     [string] $ApiUri
     [ValidateLength(20, 50)][string] $RemoteApiAccessToken
@@ -1718,7 +1716,7 @@ Class HueScene : HueFactory {
     [ValidateLength(2, 20)][string] $Scene
     [ValidateLength(2, 80)][string] $SceneFriendlyName
     [ipaddress] $BridgeIP
-    [ValidateLength(20, 50)][string] $APIKey
+    [ValidateLength(5, 50)][string] $APIKey
     [psobject] $Data
     [string] $ApiUri
     [ValidateLength(20, 50)][string] $RemoteApiAccessToken
