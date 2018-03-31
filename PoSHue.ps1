@@ -393,9 +393,9 @@ Class HueLight : HueFactory {
     [ValidateLength(20, 50)][string] $APIKey
     [ValidateLength(1, 2000)][string] $JSON
     [bool] $On
-    [ValidateRange(1, 254)][int] $Brightness
+    [ValidateRange(0, 255)][int] $Brightness
     [ValidateRange(0, 65535)][int] $Hue
-    [ValidateRange(0, 254)][int] $Saturation
+    [ValidateRange(0, 255)][int] $Saturation
     [ValidateRange(153, 500)][int] $ColourTemperature
     [hashtable] $XY = @{ x = $null; y = $null }    
     [bool] $Reachable
@@ -1124,9 +1124,9 @@ Class HueGroup : HueFactory {
     [ValidateLength(20, 50)][string] $APIKey
     [ValidateLength(1, 2000)][string] $JSON
     [bool] $On
-    [ValidateRange(1, 254)][int] $Brightness
+    [ValidateRange(0, 255)][int] $Brightness
     [ValidateRange(0, 65535)][int] $Hue
-    [ValidateRange(0, 254)][int] $Saturation
+    [ValidateRange(0, 255)][int] $Saturation
     [ValidateRange(153, 500)][int] $ColourTemperature
     [hashtable] $XY = @{ x = $null; y = $null }
     [ColourMode] $ColourMode
