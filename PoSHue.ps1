@@ -537,7 +537,8 @@ Class HueLight : HueFactory {
 
         $this.Hue = $Status.state.hue
         $this.Saturation = $Status.state.sat
-        if(Get-Member -inputobject $Status.state -name "colormode" -Membertype Properties) {                                                           
+        
+        if (Get-Member -InputObject $Status.state -Name "colormode" -MemberType Properties) {                                                           
             $this.ColourMode = $Status.state.colormode
 
             # This is for compatibility reasons on Philips Ambient Lights
@@ -545,8 +546,9 @@ Class HueLight : HueFactory {
                 $this.XY.x = $Status.state.xy[0]
                 $this.XY.y = $Status.state.xy[1]
             }
-        } else {
-                $this.ColourMode = 'none'
+        }
+        else {
+            $this.ColourMode = 'none'
         }
 
         If ($Status.state.ct) {
