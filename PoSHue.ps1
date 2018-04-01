@@ -129,6 +129,23 @@ Class HueFactory {
            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # Force use of TLS 1.2
         }
     }
+
+<#
+    # The desire is to be able to catch expired tokens and simply refresh. Not sure this is possible for the same reasons that obtaining the Access Token inside PS isn't.
+    [pscustomobject] RefreshAccessToken([string] $RefreshToken) {
+        if (!($this.RemoteApiAccessToken)) {
+            Throw 'This method can only be used where the parent object is using the remote API.'
+        }
+        $Result = Invoke-RestMethod -Method Post `
+            -Uri ("{0}/{1}" -f ($this.HueRemoteApiUri -replace '/bridge/'), 'oauth2/refresh?grant_type=refresh_token') `
+            -Headers @{Authorization = "Bearer $($this.RemoteApiAccessToken)"} `
+            -ContentType 'application/x-www-form-urlencoded'
+            -Body ('refresh_token={0}' -f $RefreshToken)
+
+        Return $Result
+    }
+#>
+
 # End HueFactory
 }
 
@@ -149,14 +166,16 @@ Class HueBridge : HueFactory {
     # Constructor to return an API Key
     HueBridge([string] $Bridge) {
         $this.BridgeIP = $Bridge
-        $this.ApiUri = "http://$($this.BridgeIP)/api/"
+        $this.ApiUri = "http://{0}/api/" -f $this.BridgeIP
+
     }
 
     # Constructor to return lights and names of lights.
     HueBridge([string] $Bridge, [string] $APIKey) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
+
     }
 
     # Use a Remote API session but without a username/whitelist entry.
@@ -203,7 +222,7 @@ Class HueBridge : HueFactory {
             Return $Result[0].success.username
         }
         Else {
-            Throw "There was an error.`r`n$Result"
+            Throw "There was an error getting a new API key.`r`n$Result"
         }
     }
 
@@ -240,23 +259,24 @@ Class HueBridge : HueFactory {
 
         $Result = $this.GetAllLights()
 
-        $CountLights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}).Count
+        $Lights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"})
 
-        $Object = for ($i = 1; $i -lt $CountLights + 1; $i++) {
-            $Property = [ordered]@{
-                Name         = $Result.$i.name
-                Id           = [int]$i
-                Type         = $Result.$i.type
-                IsOn         = $Result.$i.state.on
-                Brightness   = $Result.$i.state.bri
-                Hue          = $Result.$i.state.hue
-                Saturation   = $Result.$i.state.sat
-                ColourTemp   = $Result.$i.state.ct
-                XY           = $Result.$i.state.xy
-                ColorMode    = $Result.$i.state.colormode
-                Reachable    = $Result.$i.state.reachable
-                ModelId      = $Result.$i.modelid
-                Manufacturer = $Result.$i.manufacturername
+        $Object = foreach ($Light in $Lights) {
+            $Property = [ordered]@{             
+                Name         = $Light.Value.name
+                Id           = $Light.name
+                Type         = $Light.Value.type
+                IsOn         = $Light.Value.state.on
+                Brightness   = $Light.Value.state.bri
+                Hue          = $Light.Value.state.hue
+                Saturation   = $Light.Value.state.sat
+                ColourTemp   = $Light.Value.state.ct
+                XY           = $Light.Value.state.xy
+                ColorMode    = $Light.Value.state.colormode
+                Reachable    = $Light.Value.state.reachable
+                ModelId      = $Light.Value.modelid
+                Manufacturer = $Light.Value.manufacturername
+            
             }
             # Create the new object.
             New-Object -TypeName PSObject -Property $Property
@@ -443,7 +463,7 @@ Class HueLight : HueFactory {
         $this.LightFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
         $this.Light = $this.GetHueLight($Name)
         $this.GetStatus()
     }
@@ -451,7 +471,7 @@ Class HueLight : HueFactory {
     HueLight([int] $LightId, [ipaddress] $Bridge, [string] $APIKey) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
         $this.Light = $LightId
         $this.GetStatus()
     }
@@ -1147,14 +1167,14 @@ Class HueGroup : HueFactory {
     HueGroup([string] $Bridge, [string] $API) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
     }
 
     HueGroup([string] $Name, [string] $Bridge, [string] $API) {
         $this.GroupFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
         $this.Group = $this.GetLightGroup($Name)
         $this.GetStatus()
     }
@@ -1599,14 +1619,14 @@ Class HueSensor : HueFactory {
     HueSensor([ipaddress] $Bridge, [string] $API) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
     }
 
     HueSensor([string] $Name, [ipaddress] $Bridge, [string] $APIKey) {
         $this.SensorFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
         $this.Sensor = $this.GetHueSensor($Name)
         $this.GetStatus()
     }
@@ -1730,14 +1750,14 @@ Class HueScene : HueFactory {
     HueScene([string] $Bridge, [string] $API) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
     }
 
     HueScene([string] $Name, [string] $Bridge, [string] $APIKey) {
         $this.SceneFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
-        $this.ApiUri = "http://$($this.BridgeIP)/api/$($this.APIKey)"
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
         $this.Scene = $this.GetHueScene($Name)
         $this.GetStatus()
     }
