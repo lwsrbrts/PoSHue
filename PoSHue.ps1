@@ -120,7 +120,6 @@ Class HueFactory {
     # Some Windows PowerShell 5.1 specific code to handle move to HTTPS within Hue API 1.24.0
     # Windows PowerShell 5.1 doesn't do well with self-signed certificates and needs to be
     # forced to use TLS1.2 it seems.
-    # Second "if" may not be required since the same code run twice just returns the same class.
     ResolvePs51HttpsCompatibility() {
         $PSVersion = $global:PSVersionTable.PSVersion.Major
         if (([System.Environment]::OSVersion.Platform -eq 'Win32NT') -and ($PSVersion -lt 6)) {
@@ -130,22 +129,6 @@ Class HueFactory {
            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # Force use of TLS 1.2
         }
     }
-
-<#
-    # The desire is to be able to catch expired tokens and simply refresh. Not sure this is possible for the same reasons that obtaining the Access Token inside PS isn't.
-    [pscustomobject] RefreshAccessToken([string] $RefreshToken) {
-        if (!($this.RemoteApiAccessToken)) {
-            Throw 'This method can only be used where the parent object is using the remote API.'
-        }
-        $Result = Invoke-RestMethod -Method Post `
-            -Uri ("{0}/{1}" -f ($this.HueRemoteApiUri -replace '/bridge/'), 'oauth2/refresh?grant_type=refresh_token') `
-            -Headers @{Authorization = "Bearer $($this.RemoteApiAccessToken)"} `
-            -ContentType 'application/x-www-form-urlencoded'
-            -Body ('refresh_token={0}' -f $RefreshToken)
-
-        Return $Result
-    }
-#>
 
 # End HueFactory
 }
