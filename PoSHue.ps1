@@ -234,7 +234,7 @@ Class HueBridge : HueFactory {
         Return $Result
     }
 
-    [PSCustomObject] GetAllLightsObject() {
+    [psobject] GetAllLightsObject() {
         If (!($this.APIKey)) {
             Throw "This operation requires the APIKey property to be set."
         }
@@ -1184,11 +1184,29 @@ Class HueGroup : HueFactory {
         $this.GetStatus()
     }
 
+    # Instantiate the object using the group ID
+    HueGroup([int] $GroupId, [string] $Bridge, [string] $API) {
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $API
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
+        $this.Group = $GroupId
+        $this.GetStatus()
+    }
+
     # Remote API constructor for creation of new groups.
     HueGroup([string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
         $this.APIKey = $APIKey
         $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+    }
+
+    # Constructor to return lights and names of lights remotely.
+    HueGroup([int] $GroupId, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+        $this.Group = $GroupId
+        $this.GetStatus()
     }
 
     # Constructor to return lights and names of lights remotely.
@@ -1210,18 +1228,22 @@ Class HueGroup : HueFactory {
         # Change the named group in to the integer used by the bridge. We use this throughout.
         $Result = $this.GetLightGroups()
         $Groups = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
-        $SelectedGroup = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select-Object Name -ExpandProperty Name
+
+        $SelectedGroup = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select-Object @{Name="GroupId"; Expression = {$_.Name}},@{Name="GroupName"; Expression = {$_.Value.Name}}
+
+        If ($SelectedGroup.Count -is [int]) {
+            Throw "There are multiple groups with the name `"$Name`" in this Hue Bridge. Please instantiate using the Group ID number instead.`r`nTo get a list of groups, use [HueGroup]::GetLightsGroups() with an empty [HueGroup] object."
+        }
         If ($SelectedGroup) {
-            Return $SelectedGroup
+            Return $SelectedGroup.GroupId
         }
         Else {
-            Throw "No group name matching `"$Name`" was found in the Hue Bridge.`r`nTry using [HueBridge]::GetLightGroups() to get a full list of groups in this Hue Bridge."
+            Throw "No group name matching `"$Name`" was found in the Hue Bridge.`r`nTry using [HueGroup]::GetLightGroups() to get a full list of groups in this Hue Bridge."
         }
     }
 
     [psobject] GetLightGroups() {
         # Get light groups.
-
         Try {
             $ReqArgs = $this.BuildRequestParams('Get', "/groups")
             $Result = Invoke-RestMethod @ReqArgs
@@ -1242,6 +1264,7 @@ Class HueGroup : HueFactory {
         $Settings.Add("name", $GroupName)
         $Settings.Add("type", "LightGroup")
         $Settings.Add("lights", $LightID)
+        $Result = $null
 
         Try {
             $ReqArgs = $this.BuildRequestParams('Post', "/groups")
@@ -1254,7 +1277,7 @@ Class HueGroup : HueFactory {
             $this.ReturnError('CreateLightGroup([string]$GroupName, [string[]] $LightID): An error occurred while creating the light group.' + "`n" + $_)
         }
         $this.GroupFriendlyName = $GroupName
-        $this.Group = $this.GetLightGroup($this.GroupFriendlyName)
+        $this.Group = $Result.success.id
         $this.GetStatus()
     }
 
@@ -1265,6 +1288,7 @@ Class HueGroup : HueFactory {
         $Settings.Add("type", "Room")
         $Settings.Add("class", [string]$RoomClass)
         $Settings.Add("lights", $LightID)
+        $Result = $null
 
         Try {
             $ReqArgs = $this.BuildRequestParams('Post', "/groups")
@@ -1277,8 +1301,27 @@ Class HueGroup : HueFactory {
             $this.ReturnError('CreateLightGroup([string]$GroupName, [RoomClass]$RoomClass, [string[]] $LightID): An error occurred while creating the group.' + "`n" + $_)
         }
         $this.GroupFriendlyName = $GroupName
-        $this.Group = $this.GetLightGroup($this.GroupFriendlyName)
+        $this.Group = $Result.success.id
         $this.GetStatus()
+    }
+
+    [string] DeleteLightGroup() {
+        # Delete this light group.
+        If (!($this.Group)) { Throw "This operation requires the Group (the identifying number of the group) property to be set.`nYou must instantiate the object with the Group ID or Name." }
+
+        $Result = $null
+
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Delete', "/groups/$($this.Group)")
+            $Result = Invoke-RestMethod @ReqArgs
+            If ($Result.error) {
+                Throw $Result.error
+            }
+        }
+        Catch {
+            $this.ReturnError('DeleteLightGroup(): An error occurred while deleting the light group.' + "`n" + $_)
+        }
+        Return $Result.success
     }
 
     [string] DeleteLightGroup([string]$GroupName) {
@@ -1310,6 +1353,11 @@ Class HueGroup : HueFactory {
         }
         Catch {
             $this.ReturnError('GetStatus(): An error occurred while getting the status of the group.' + $_)
+        }
+
+        # If LightFriendlyName is null, fill it since we are probably working with LightId directly.
+        If (!($this.GroupFriendlyName)) {
+            $this.GroupFriendlyName = $Status.name
         }
 
         $this.On = $Status.action.on
