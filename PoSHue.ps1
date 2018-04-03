@@ -59,13 +59,13 @@ Class HueFactory {
             Uri         = $this.ApiUri + $Uri
             ContentType = 'application/json'
         }
-        if ($this.RemoteApiAccessToken) {
+        If ($this.RemoteApiAccessToken) {
             $ReqArgs.Add('Headers', @{Authorization = "Bearer $($this.RemoteApiAccessToken)"})
         }
-        elseif ($PSVersion -ge 6) {
+        ElseIf ($PSVersion -ge 6) {
             $ReqArgs.Add('SkipCertificateCheck', $true)
         }
-        elseif ($PSVersion -eq 5) {
+        ElseIf ($PSVersion -eq 5) {
             $this.ResolvePs51HttpsCompatibility()
         }
         
@@ -79,7 +79,7 @@ Class HueFactory {
 
     # Simple string to help users get remote api access.
     static [string] GetRemoteApiAccess() {
-        Return "To get an access token that permits this module to access your bridge via the Philips`r`nHue Remote API, please open a browser and visit https://www.lewisroberts.com/poshue"
+        Return "To get an access token that permits this module to access your bridge via the Philips`r`nHue Remote API, please open a browser and visit https://www.lewisroberts.com/poshue`r`nAccess tokens are currently only valid for 7 days (not set by me)."
     }
     
     # convert unix timestamps to local datetime objects
@@ -92,7 +92,7 @@ Class HueFactory {
 
     # get quota from the remote api
     [pscustomobject] GetRemoteApiUsage() {
-        if (!($this.RemoteApiAccessToken)) {
+        If (!($this.RemoteApiAccessToken)) {
             Throw 'This method can only be used where the parent object is using the remote API.'
         }
 
@@ -122,7 +122,7 @@ Class HueFactory {
     # forced to use TLS1.2 it seems.
     ResolvePs51HttpsCompatibility() {
         $PSVersion = $global:PSVersionTable.PSVersion.Major
-        if (([System.Environment]::OSVersion.Platform -eq 'Win32NT') -and ($PSVersion -lt 6)) {
+        If (([System.Environment]::OSVersion.Platform -eq 'Win32NT') -and ($PSVersion -lt 6)) {
            Add-Type -TypeDefinition "using System.Net; using System.Security.Cryptography.X509Certificates; public class TrustAllCertsPolicy : ICertificatePolicy { public bool CheckValidationResult(ServicePoint srvPoint, X509Certificate certificate, WebRequest request, int certificateProblem) {return true;} }"
            [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
@@ -151,7 +151,6 @@ Class HueBridge : HueFactory {
     HueBridge([string] $Bridge) {
         $this.BridgeIP = $Bridge
         $this.ApiUri = "http://{0}/api/" -f $this.BridgeIP
-
     }
 
     # Constructor to return lights and names of lights.
@@ -159,7 +158,6 @@ Class HueBridge : HueFactory {
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
         $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
-
     }
 
     # Use a Remote API session but without a username/whitelist entry.
@@ -180,7 +178,7 @@ Class HueBridge : HueFactory {
     ###########
 
     static [PSObject] FindHueBridge() {
-        if ([System.Environment]::OSVersion.Platform -ne 'Win32NT') {
+        If ([System.Environment]::OSVersion.Platform -ne 'Win32NT') {
             Throw 'Searching for your Philips Hue bridge via UPnP is not currently possible on Unix and Mac platforms. Please consult your network equipment to discover the bridge IP address.'
         }
         $UPnPFinder = New-Object -ComObject UPnP.UPnPDeviceFinder
@@ -189,7 +187,7 @@ Class HueBridge : HueFactory {
     }
   
     [string] GetNewAPIKey() {
-        if ($this.RemoteApiAccessToken) {
+        If ($this.RemoteApiAccessToken) {
             $ReqArgs = $this.BuildRequestParams('Put', '/0/config')
             $Result = Invoke-RestMethod @ReqArgs -Body '{ "linkbutton":true }'
         }
@@ -245,7 +243,7 @@ Class HueBridge : HueFactory {
 
         $Lights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"})
 
-        $Object = foreach ($Light in $Lights) {
+        $Object = Foreach ($Light in $Lights) {
             $Property = [ordered]@{             
                 Name         = $Light.Value.name
                 Id           = $Light.name
@@ -264,6 +262,23 @@ Class HueBridge : HueFactory {
             }
             # Create the new object.
             New-Object -TypeName PSObject -Property $Property
+        }
+
+        Return $Object
+    }
+
+    # Returns a set of HueLight objects rather than just their information.
+    [PSCustomObject] GetAllLightsObject([switch] $Objects) {
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+
+        $Result = $this.GetAllLights()
+
+        $Lights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"})
+
+        $Object = Foreach ($Light in $Lights) {
+            [HueLight]::New($Light.Value.Name, $This.BridgeIP, $This.APIKey)
         }
 
         Return $Object
@@ -353,7 +368,7 @@ Class HueBridge : HueFactory {
 
         $Entries = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
 
-        $Object = foreach ($Entry in $Entries) {
+        $Object = Foreach ($Entry in $Entries) {
             $Property = [ordered]@{
                 WhitelistId = $Entry.Name
                 Name = $Entry.Value.name
@@ -509,7 +524,7 @@ Class HueLight : HueFactory {
         Try {
             $ReqArgs = $this.BuildRequestParams('Get', "/lights/$($this.Light)")
             $Status = Invoke-RestMethod @ReqArgs
-            if ($Status.error -ne $null) {
+            If ($Status.error -ne $null) {
                 $Output = 'Error: '
                 Foreach ($e in $Status) {
                     Switch ($e.error.type) {
@@ -527,30 +542,30 @@ Class HueLight : HueFactory {
         $this.On = $Status.state.on
 
         # If LightFriendlyName is null, fill it since we are probably working with LightId directly.
-        if (!($this.LightFriendlyName)) {
+        If (!($this.LightFriendlyName)) {
             $this.LightFriendlyName = $Status.name
         }
         
         # If Light is not reachable, set On = false
-        if (!($Status.state.reachable)) {$this.On = $status.state.reachable}        
+        If (!($Status.state.reachable)) {$this.On = $status.state.reachable}        
         $this.Reachable = $Status.state.reachable
         
         # This is for compatibility reasons on Philips Ambient Lights
-        if ($Status.state.bri -ge 1) {$this.Brightness = $Status.state.bri}
+        If ($Status.state.bri -ge 1) {$this.Brightness = $Status.state.bri}
 
         $this.Hue = $Status.state.hue
         $this.Saturation = $Status.state.sat
         
-        if (Get-Member -InputObject $Status.state -Name "colormode" -MemberType Properties) {                                                           
+        If (Get-Member -InputObject $Status.state -Name "colormode" -MemberType Properties) {                                                           
             $this.ColourMode = $Status.state.colormode
 
             # This is for compatibility reasons on Philips Ambient Lights
-            if ($Status.state.colormode -eq "xy") {
+            If ($Status.state.colormode -eq "xy") {
                 $this.XY.x = $Status.state.xy[0]
                 $this.XY.y = $Status.state.xy[1]
             }
         }
-        else {
+        Else {
             $this.ColourMode = 'none'
         }
 
@@ -564,8 +579,8 @@ Class HueLight : HueFactory {
             exist on lights that don't support colour temperature, it's a bit of a pain.
             #>
             Switch ($Status.state.ct) {
-                {($Status.state.ct -lt 153)} {$this.ColourTemperature = 153; break}
-                {($Status.state.ct -gt 500)} {$this.ColourTemperature = 500; break}
+                {($Status.state.ct -lt 153)} {$this.ColourTemperature = 153; Break}
+                {($Status.state.ct -gt 500)} {$this.ColourTemperature = 500; Break}
                 default {$this.ColourTemperature = $Status.state.ct}
             }
         }
@@ -966,9 +981,9 @@ Class HueLight : HueFactory {
         [float] $b = $Colour.B / 255
 
         # Gamma correction
-        [float] $red = if ($r -gt [float]0.04045) { [Math]::Pow(($r + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($r / [float]12.92) }
-        [float] $green = if ($g -gt [float]0.04045) { [Math]::Pow(($g + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($g / [float]12.92) }
-        [float] $blue = if ($b -gt [float]0.04045) { [Math]::Pow(($b + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($b / [float]12.92) }
+        [float] $red = If ($r -gt [float]0.04045) { [Math]::Pow(($r + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($r / [float]12.92) }
+        [float] $green = If ($g -gt [float]0.04045) { [Math]::Pow(($g + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($g / [float]12.92) }
+        [float] $blue = If ($b -gt [float]0.04045) { [Math]::Pow(($b + [float]0.055) / ([float]1.0 + [float]0.055), [float]2.4) } Else { ($b / [float]12.92) }
 
         # Convert the RGB values to XYZ using the Wide RGB D65 conversion formula
         [float] $x = ($red * [float]0.664511) + ($green * [float]0.154324) + ($blue * [float]0.162028)
@@ -1062,14 +1077,14 @@ Class HueLight : HueFactory {
         [float] $ap_ab = $ap.x * $ab.x + $ap.y * $ab.y
         [float] $t = $ap_ab / $ab2
     
-        if ($t -lt [float]0.0) {
+        If ($t -lt [float]0.0) {
             $t = [float]0.0;
         }
-        elseif ($t -gt [float]1.0) {
+        ElseIf ($t -gt [float]1.0) {
             $t = [float]1.0;
         }
 
-        return @{
+        Return @{
             x = $a.x + $ab.x * $t
             y = $a.y + $ab.y * $t
         }
@@ -1079,7 +1094,7 @@ Class HueLight : HueFactory {
         [float] $dx = $p1.x - $p2.x
         [float] $dy = $p1.y - $p2.y
         [float] $dist = [Math]::Sqrt($dx * $dx + $dy * $dy)
-        return $dist
+        Return $dist
     }
 
     [hashtable] xyForModel($xy, $Gamut) {
@@ -1306,8 +1321,8 @@ Class HueGroup : HueFactory {
         $this.XY.y = $Status.action.xy[1]
         If ($Status.action.ct) {
             Switch ($Status.action.ct) {
-                {($Status.action.ct -lt 153)} {$this.ColourTemperature = 153; break}
-                {($Status.action.ct -gt 500)} {$this.ColourTemperature = 500; break}
+                {($Status.action.ct -lt 153)} {$this.ColourTemperature = 153; Break}
+                {($Status.action.ct -gt 500)} {$this.ColourTemperature = 500; Break}
                 default {$this.ColourTemperature = $Status.action.ct}
             }
         }
@@ -1830,7 +1845,7 @@ Class HueScene : HueFactory {
         $Result = $this.GetAllScenes()
         $Scenes = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
 
-        $Object = foreach ($Scene in $Scenes) {
+        $Object = Foreach ($Scene in $Scenes) {
             $Property = [ordered]@{
                 SceneId = $Scene.Name
                 SceneName = $Scene.Value.name
