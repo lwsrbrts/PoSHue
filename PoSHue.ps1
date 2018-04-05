@@ -174,6 +174,37 @@ Class HueFactory {
         Return $Result
     }
 
+    # The desire is to be able to catch expired tokens and simply refresh.
+    static [pscustomobject] RefreshAccessToken([string] $ExistingExpiredAccessToken, [string] $ExistingValidRefreshToken, [int] $ExpiryUnixTimeStamp, [bool] $Static) {
+        # Sanity check if the token has expired. The refresh page also does this but might as well avoid the "cost" of making an HTTP call where we can.
+        Try { [System.DateTimeOffset]::FromUnixTimeSeconds($ExpiryUnixTimeStamp) }
+        Catch { Throw "RefreshAccessToken(): Expiration timestamp could not be understood as a date.`r`n" + $_ } 
+
+        If (([System.DateTimeOffset]::FromUnixTimeSeconds($ExpiryUnixTimeStamp)) -gt (Get-Date)) {
+            Throw "RefreshAccessToken(): The access token has not expired yet.`r`n" + $_
+        }
+
+        $Result = $null
+
+        $Settings = @{}
+        $Settings.Add("access_token", $ExistingExpiredAccessToken)
+        $Settings.Add("refresh_token", $ExistingValidRefreshToken)
+        $Settings.Add("expires", $ExpiryUnixTimeStamp)
+
+        Try {
+        $Result = Invoke-RestMethod -Method Post `
+            -Uri 'https://www.lewisroberts.com/poshue_refresh.php' `
+            -Body $Settings
+        }
+        Catch {
+            # Catches anything not 2xx/3xx and raises an error.
+            # The refresh page will send a sensible 4xx error if the request is no good.
+            Throw "RefreshAccessToken(): An error occurred while refreshing the token.`r`n" + $_
+        }
+
+        Return $Result
+    }
+
     # Export the access token (important bits) to JSON so it can be stored/saved etc.
     [string] ExportAccessTokenToJson() {
         $AccessToken = @{}
