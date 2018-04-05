@@ -19,10 +19,14 @@ h1 {
 	margin: 40px 0;
 }
 
+h2 {
+	font-size: 180%;
+	margin: 40px 0;
+}
+
 b {
 	font-weight: bold;
 }
-
 
 .authorise {
 	width: 150px;

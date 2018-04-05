@@ -130,6 +130,30 @@ Class HueFactory {
         }
     }
 
+    # The desire is to be able to catch expired tokens and simply refresh.
+    [pscustomobject] RefreshAccessToken([string] $ExistingExpiredAccessToken, [string] $ExistingValidRefreshToken, [int] $ExpiryUnixTimeStamp) {
+        if (!($this.RemoteApiAccessToken)) {
+            Throw 'This method can only be used where the parent object is using the remote API.'
+        }
+
+        $Result = $null
+
+        $Settings = @{}
+        $Settings.Add("access_token", $ExistingExpiredAccessToken)
+        $Settings.Add("refresh_token", $ExistingValidRefreshToken)
+        $Settings.Add("expires", $ExpiryUnixTimeStamp)
+
+        Try {
+        $Result = Invoke-RestMethod -Method Post `
+            -Uri 'https://www.lewisroberts.com/poshue_refresh.php' `
+            -Body $Settings
+        }
+        Catch {
+            $this.ReturnError("RefreshAccessToken(): An error occurred while refreshing the token.`r`n" + $_)
+        }
+        Return $Result
+    }
+
 # End HueFactory
 }
 
@@ -396,8 +420,6 @@ Class HueBridge : HueFactory {
         }
         Return $Result
     }
-
-
 }
 
 Class HueLight : HueFactory {
