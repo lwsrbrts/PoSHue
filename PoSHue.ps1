@@ -49,7 +49,14 @@ Enum RoomClass {
 }
 
 Class HueFactory {
-    # Base class defining methods shared amongst other classes
+    # Base class defining properties and methods shared amongst other classes
+
+    [ValidateLength(20, 50)][string] $RemoteApiAccessToken
+    [ValidateLength(20, 50)][string] $RemoteApiRefreshToken
+    [int] $RemoteApiAccessTokenExpiryDate
+
+    # A technically static entry to configure the location of the Hue Remote API
+    hidden [string] $HueRemoteApiUri = 'https://api.meethue.com/bridge/'
 
     # Builds request parameters.
     hidden [hashtable] BuildRequestParams([string] $Method, [string] $Uri) {
@@ -86,9 +93,6 @@ Class HueFactory {
     hidden [datetime] ConvertUnixTime([long] $Milliseconds) {
         Return [System.DateTimeOffset]::FromUnixTimeMilliseconds($Milliseconds).LocalDateTime
     }
-
-    # a technically static entry to configure the location of the remote api1
-    hidden [string] $HueRemoteApiUri = 'https://api.meethue.com/bridge/'
 
     # get quota from the remote api
     [pscustomobject] GetRemoteApiUsage() {
@@ -132,8 +136,15 @@ Class HueFactory {
 
     # The desire is to be able to catch expired tokens and simply refresh.
     [pscustomobject] RefreshAccessToken([string] $ExistingExpiredAccessToken, [string] $ExistingValidRefreshToken, [int] $ExpiryUnixTimeStamp) {
-        if (!($this.RemoteApiAccessToken)) {
+        If (!($this.RemoteApiAccessToken)) {
             Throw 'This method can only be used where the parent object is using the remote API.'
+        }
+        # Sanity check if the token has expired. The refresh page also does this but might as well avoid the "cost" of making an HTTP call where we can.
+        Try { [System.DateTimeOffset]::FromUnixTimeSeconds($ExpiryUnixTimeStamp) }
+        Catch { $this.ReturnError("RefreshAccessToken(): Expiration timestamp could not be understood as a date.`r`n" + $_) } 
+
+        If (([System.DateTimeOffset]::FromUnixTimeSeconds($ExpiryUnixTimeStamp)) -gt (Get-Date)) {
+            $this.ReturnError("RefreshAccessToken(): The access token has not expired yet.`r`n" + $_)
         }
 
         $Result = $null
@@ -149,9 +160,28 @@ Class HueFactory {
             -Body $Settings
         }
         Catch {
+            # Catches anything not 2xx/3xx and raises an error.
+            # The refresh page will send a sensible 4xx error if the request is no good.
             $this.ReturnError("RefreshAccessToken(): An error occurred while refreshing the token.`r`n" + $_)
         }
+
+        If ($Result.access_token -and $Result.refresh_token -and $Result.expires) {
+            $this.RemoteApiAccessToken = $Result.access_token
+            $this.RemoteApiRefreshToken = $Result.refresh_token
+            $this.RemoteApiAccessTokenExpiryDate = $Result.expires
+        }
+
         Return $Result
+    }
+
+    # Export the access token (important bits) to JSON so it can be stored/saved etc.
+    [string] ExportAccessTokenToJson() {
+        $AccessToken = @{}
+        $AccessToken.Add("access_token", $this.RemoteApiAccessToken)
+        $AccessToken.Add("refresh_token", $this.RemoteApiRefreshToken)
+        $AccessToken.Add("expires", $this.RemoteApiAccessTokenExpiryDate)
+
+        Return ConvertTo-Json -InputObject $AccessToken
     }
 
 # End HueFactory
