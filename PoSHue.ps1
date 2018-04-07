@@ -1752,13 +1752,15 @@ Class HueSensor : HueFactory {
     # CONSTRUCTOR #
     ###############
 
-    HueSensor([ipaddress] $Bridge, [string] $API) {
+    # Constructor for local access to list all sensors.
+    HueSensor([string] $Bridge, [string] $API) {
         $this.BridgeIP = $Bridge
         $this.APIKey = $API
         $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
     }
 
-    HueSensor([string] $Name, [ipaddress] $Bridge, [string] $APIKey) {
+    # Constructor for local access to a named sensor
+    HueSensor([string] $Name, [string] $Bridge, [string] $APIKey) {
         $this.SensorFriendlyName = $Name
         $this.BridgeIP = $Bridge
         $this.APIKey = $APIKey
@@ -1767,7 +1769,14 @@ Class HueSensor : HueFactory {
         $this.GetStatus()
     }
 
-    # Constructor to return lights and names of lights remotely.
+    # Constructor for remote access to list all sensors.
+    HueSensor([string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+    }
+
+    # Constructor for remote access to a named sensor
     HueSensor([string] $Name, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
         $this.SensorFriendlyName = $Name
         $this.RemoteApiAccessToken = $RemoteApiAcccessToken
