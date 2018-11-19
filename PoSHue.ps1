@@ -80,8 +80,23 @@ Class HueFactory {
     }
 
     # Return errors and terminates execution
-    hidden [void] ReturnError([string] $e) {
-        Write-Error $e -ErrorAction Stop
+    hidden [void] ReturnError($e) {
+        Throw $e
+    }
+
+    # Return errors and terminates execution
+    hidden [void] ValidateResponse($r) {
+        If ($r.error -ne $null) {
+            $Output = 'Error: '
+            Foreach ($e in $r) {
+                Switch ($e.error.type) {
+                    # add more for specific errors if desired.
+                    default {$Output += $e.error.description}
+                }
+            }
+            Throw [System.Net.WebException]::new($Output)
+        }
+        Else {Return}
     }
 
     # Simple string to help users get remote api access.
@@ -127,10 +142,10 @@ Class HueFactory {
     ResolvePs51HttpsCompatibility() {
         $PSVersion = $global:PSVersionTable.PSVersion.Major
         If (([System.Environment]::OSVersion.Platform -eq 'Win32NT') -and ($PSVersion -lt 6)) {
-           Add-Type -TypeDefinition "using System.Net; using System.Security.Cryptography.X509Certificates; public class TrustAllCertsPolicy : ICertificatePolicy { public bool CheckValidationResult(ServicePoint srvPoint, X509Certificate certificate, WebRequest request, int certificateProblem) {return true;} }"
-           [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+            Add-Type -TypeDefinition "using System.Net; using System.Security.Cryptography.X509Certificates; public class TrustAllCertsPolicy : ICertificatePolicy { public bool CheckValidationResult(ServicePoint srvPoint, X509Certificate certificate, WebRequest request, int certificateProblem) {return true;} }"
+            [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
-           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # Force use of TLS 1.2
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # Force use of TLS 1.2
         }
     }
 
@@ -155,9 +170,9 @@ Class HueFactory {
         $Settings.Add("expires", $ExpiryUnixTimeStamp)
 
         Try {
-        $Result = Invoke-RestMethod -Method Post `
-            -Uri 'https://www.lewisroberts.com/poshue_refresh.php' `
-            -Body $Settings
+            $Result = Invoke-RestMethod -Method Post `
+                -Uri 'https://www.lewisroberts.com/poshue_refresh.php' `
+                -Body $Settings
         }
         Catch {
             # Catches anything not 2xx/3xx and raises an error.
@@ -192,9 +207,9 @@ Class HueFactory {
         $Settings.Add("expires", $ExpiryUnixTimeStamp)
 
         Try {
-        $Result = Invoke-RestMethod -Method Post `
-            -Uri 'https://www.lewisroberts.com/poshue_refresh.php' `
-            -Body $Settings
+            $Result = Invoke-RestMethod -Method Post `
+                -Uri 'https://www.lewisroberts.com/poshue_refresh.php' `
+                -Body $Settings
         }
         Catch {
             # Catches anything not 2xx/3xx and raises an error.
@@ -215,7 +230,7 @@ Class HueFactory {
         Return ConvertTo-Json -InputObject $AccessToken
     }
 
-# End HueFactory
+    # End HueFactory
 }
 
 Class HueBridge : HueFactory {
@@ -455,10 +470,10 @@ Class HueBridge : HueFactory {
 
         $Object = Foreach ($Entry in $Entries) {
             $Property = [ordered]@{
-                WhitelistId = $Entry.Name
-                Name = $Entry.Value.name
+                WhitelistId  = $Entry.Name
+                Name         = $Entry.Value.name
                 CreationDate = $Entry.Value.'create date'
-                LastUsed = $Entry.Value.'last use date'
+                LastUsed     = $Entry.Value.'last use date'
             }
             # Create the new object.
             New-Object -TypeName PSObject -Property $Property
@@ -587,9 +602,11 @@ Class HueLight : HueFactory {
         Try {
             $ReqArgs = $this.BuildRequestParams('Get', '/lights')
             $HueData = Invoke-RestMethod @ReqArgs
+            $this.ValidateResponse($HueData)
         }
         Catch {
-            $this.ReturnError('GetHueLight([string] $Name): An error occurred while getting light information.' + $_)
+            #$this.ReturnError('GetHueLight([string] $Name): An error occurred while getting light information.' + $_)
+            $this.ReturnError($_)
         }
         $Lights = $HueData.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
         $SelectedLight = $Lights | Where-Object {$_.Value.Name -eq $Name}  | Select-Object Name -ExpandProperty Name
@@ -619,7 +636,7 @@ Class HueLight : HueFactory {
             }
         }
         Catch {
-            $this.ReturnError('GetStatus(): An error occurred while getting the status of the light.'+"`r`n" + $_)
+            $this.ReturnError('GetStatus(): An error occurred while getting the status of the light.' + "`r`n" + $_)
         }
 
         $this.On = $Status.state.on
@@ -1312,7 +1329,7 @@ Class HueGroup : HueFactory {
         $Result = $this.GetLightGroups()
         $Groups = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
 
-        $SelectedGroup = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select-Object @{Name="GroupId"; Expression = {$_.Name}},@{Name="GroupName"; Expression = {$_.Value.Name}}
+        $SelectedGroup = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select-Object @{Name = "GroupId"; Expression = {$_.Name}}, @{Name = "GroupName"; Expression = {$_.Value.Name}}
 
         If ($SelectedGroup.Count -is [int]) {
             Throw "There are multiple groups with the name `"$Name`" in this Hue Bridge. Please instantiate using the Group ID number instead.`r`nTo get a list of groups, use [HueGroup]::GetLightsGroups() with an empty [HueGroup] object."
@@ -1987,12 +2004,12 @@ Class HueScene : HueFactory {
 
         $Object = Foreach ($Scene in $Scenes) {
             $Property = [ordered]@{
-                SceneId = $Scene.Name
-                SceneName = $Scene.Value.name
-                LightsInScene = $Scene.Value.lights
-                LastUpdated = $Scene.Value.lastupdated
+                SceneId        = $Scene.Name
+                SceneName      = $Scene.Value.name
+                LightsInScene  = $Scene.Value.lights
+                LastUpdated    = $Scene.Value.lastupdated
                 WhitelistOwner = $Scene.Value.owner
-                Locked = $Scene.Value.locked
+                Locked         = $Scene.Value.locked
             }
             # Create the new object.
             New-Object -TypeName PSObject -Property $Property
@@ -2012,6 +2029,51 @@ Class HueScene : HueFactory {
         }
         Catch {
             $this.ReturnError('SetHueScene([string] $SceneID): An error occurred while setting a scene.' + $_)
+        }
+        Return $Result
+    }
+
+    [psobject] CreateHueScene([string] $Name, [string[]] $LightID, [bool]$Recycle) { 
+        $Settings = @{}
+        $Settings.Add("name", $Name)
+        $Settings.Add("lights", $LightID)
+        $Settings.Add("recycle", $Recycle)
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Post', '/scenes/')
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('CreateHueScene([string] $Name, [string[]] $LightID, [bool]$Recycle): An error occurred while creating a scene.' + $_)
+        }
+        Return $Result
+    }
+
+    [psobject] CreateHueScene([string] $Name, [string[]] $LightID, [bool]$Recycle, [uint16]$TransitionTime) { 
+        $Settings = @{}
+        $Settings.Add("name", $Name)
+        $Settings.Add("lights", $LightID)
+        $Settings.Add("recycle", $Recycle)
+        $Settings.Add("transitiontime", $TransitionTime)
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Post', '/scenes/')
+            $Result = Invoke-RestMethod @ReqArgs -Body (ConvertTo-Json $Settings)
+        }
+        Catch {
+            $this.ReturnError('CreateHueScene([string] $Name, [string[]] $LightID, [bool]$Recycle, [uint16]$TransitionTime): An error occurred while creating a scene.' + $_)
+        }
+        Return $Result
+    }
+
+    [psobject] DeleteHueScene([string] $SceneID) { 
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Delete', "/scenes/$SceneID")
+            $Result = Invoke-RestMethod @ReqArgs
+        }
+        Catch {
+            $this.ReturnError('DeleteHueScene([string] $SceneID): An error occurred while deleting a scene.' + $_)
         }
         Return $Result
     }
