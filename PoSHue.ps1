@@ -2078,3 +2078,110 @@ Class HueScene : HueFactory {
         Return $Result
     }
 }
+
+Class HueSchedule : HueFactory {
+
+    ##############
+    # PROPERTIES #
+    ##############
+
+    [ValidateLength(1, 3)][string] $Schedule
+    [ValidateLength(2, 80)][string] $ScheduleFriendlyName
+    [ipaddress] $BridgeIP
+    [ValidateLength(5, 50)][string] $APIKey
+    [psobject] $Data
+    [string] $ApiUri
+    [ValidateLength(20, 50)][string] $RemoteApiAccessToken
+
+    ###############
+    # CONSTRUCTOR #
+    ###############
+
+    HueSchedule([string] $Bridge, [string] $API) {
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $API
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
+    }
+
+    HueSchedule([string] $Name, [string] $Bridge, [string] $APIKey) {
+        $this.ScheduleFriendlyName = $Name
+        $this.BridgeIP = $Bridge
+        $this.APIKey = $APIKey
+        $this.ApiUri = "http://{0}/api/{1}" -f $this.BridgeIP, $this.APIKey
+        $this.Schedule = $this.GetHueSchedule($Name)
+        $this.GetStatus()
+    }
+
+    # Constructor to access data about scenes without specifying one remotely.
+    HueSchedule([string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+    }
+
+    # Constructor to return scene information remotely.
+    HueSchedule([string] $Name, [string] $RemoteApiAcccessToken, [string] $APIKey, [bool] $RemoteSession) {
+        $this.ScheduleFriendlyName = $Name
+        $this.RemoteApiAccessToken = $RemoteApiAcccessToken
+        $this.APIKey = $APIKey
+        $this.ApiUri = "{0}{1}" -f $this.HueRemoteApiUri, $this.APIKey
+        $this.Schedule = $this.GetHueSchedule($Name)
+        $this.GetStatus()
+    }
+
+    ###########
+    # METHODS #
+    ###########
+
+    [psobject] GetAllSchedules() {
+        If (!($this.APIKey)) {
+            Throw "This operation requires the APIKey property to be set."
+        }
+        $Result = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Get', '/schedules')
+            $Result = Invoke-RestMethod @ReqArgs
+        }
+        Catch {
+            $this.ReturnError('GetAllSchedules(): An error occurred while getting schedule data.' + $_)
+        }
+        Return $Result
+    }
+
+    [array] GetScheduleNames() {
+        $Result = $this.GetAllSchedules()
+        $Schedules = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        Return $Schedules.Value.Name
+    }
+
+    # Gets a schedule's data.
+    [void] GetStatus() {
+        # Get the current values of the sensor data
+        If (!($this.Schedule)) { Throw "No schedule is specified." }
+        $Status = $null
+        Try {
+            $ReqArgs = $this.BuildRequestParams('Get', "/schedules/$($this.Schedule)")
+            $Status = Invoke-RestMethod @ReqArgs
+        }
+        Catch {
+            $this.ReturnError('GetStatus(): An error occurred while getting the schedule data.' + $_)
+        }
+
+        $this.Data = $Status        
+    }
+
+    # Gets a schedule's id from the Bridge.
+    hidden [string] GetHueSchedule([string] $ScheduleID) {
+        If (!($ScheduleID)) { Throw "No schedule name was specified." }
+        # Change the named schedule in to the integer used by the bridge. We use this throughout.
+        $Result = $this.GetAllSchedules()
+        $oSchedule = $Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"}
+        $SelectedSchedule = $oSchedule | Where-Object {$_.Value.name -eq $ScheduleID}  | Select-Object Name -ExpandProperty Name
+        If ($SelectedSchedule) {
+            Return $SelectedSchedule
+        }
+        Else {
+            Throw "No schedule name matching `"$ScheduleID`" was found in the Hue Bridge.`r`nTry using [HueSchedule]::GetScheduleNames() to get a full list of schedule names in the Hue Bridge."
+        }
+    }
+}
