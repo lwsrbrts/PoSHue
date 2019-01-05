@@ -48,6 +48,15 @@ Enum RoomClass {
     Other
 }
 
+Enum ScheduleTrigger {
+    Time
+    RecurringTime
+    RandomTime
+    RecurringRandomTime
+    Countdown
+    Interval
+}
+
 Class HueFactory {
     # Base class defining properties and methods shared amongst other classes
 
@@ -2184,4 +2193,31 @@ Class HueSchedule : HueFactory {
             Throw "No schedule name matching `"$ScheduleID`" was found in the Hue Bridge.`r`nTry using [HueSchedule]::GetScheduleNames() to get a full list of schedule names in the Hue Bridge."
         }
     }
+
+    <#
+    Enum ScheduleTrigger {
+        Time
+        RecurringTime
+        RandomTime
+        RecurringRandomTime
+        Countdown
+        Interval
+    }
+    #>
+    #Countdown timer
+    [string] NewScheduleTrigger([Timespan]$Timespan, [bool]$Recurring) {
+        If ($Recurring) {
+            Return "R/PT$($Timespan.ToString())"
+        }
+        Else {
+            Return "PT$($Timespan.ToString())"
+        }
+    }
+
+    # Absolute time
+    [string] NewScheduleTrigger([datetime]$Datetime) {
+        Return Get-Date $Datetime -Format s
+    }
+
+
 }
