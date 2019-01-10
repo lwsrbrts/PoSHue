@@ -1340,9 +1340,11 @@ Class HueGroup : HueFactory {
 
         $SelectedGroup = $Groups | Where-Object {$_.Value.Name -eq $Name}  | Select-Object @{Name = "GroupId"; Expression = {$_.Name}}, @{Name = "GroupName"; Expression = {$_.Value.Name}}
 
+        <# # Need to fix this up as it's incompatible with PowerShell 6.
         If ($SelectedGroup.Count -is [int]) {
             Throw "There are multiple groups with the name `"$Name`" in this Hue Bridge. Please instantiate using the Group ID number instead.`r`nTo get a list of groups, use [HueGroup]::GetLightsGroups() with an empty [HueGroup] object."
         }
+        #>
         If ($SelectedGroup) {
             Return $SelectedGroup.GroupId
         }
