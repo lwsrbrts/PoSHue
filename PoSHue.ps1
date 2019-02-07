@@ -387,7 +387,12 @@ Class HueBridge : HueFactory {
         $Lights = ($Result.PSObject.Members | Where-Object {$_.MemberType -eq "NoteProperty"})
 
         $Object = Foreach ($Light in $Lights) {
-            [HueLight]::New($Light.Value.Name, $This.BridgeIP, $This.APIKey)
+            If ($this.BridgeIP) {
+                [HueLight]::New($Light.Value.Name, $this.BridgeIP, $This.APIKey)
+            }
+            Else {
+                [HueLight]::New($Light.Value.Name, $this.RemoteApiAccessToken, $this.APIKey, $true)
+            }
         }
 
         Return $Object
