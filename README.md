@@ -1,3 +1,7 @@
+# Archive Notice:
+
+## Hi all, clearly I've not made any significant updates to the classes for coming up to 3 years. I'm still about but truth be told, with Philips Hue moving to a new API version (CLIPv2) and the v1 API being deprecated in the future, this class will likely cease functioning, so I've decided to archive the repository. It can still be forked if you wish. In the mean-time, for automating my own home I've been using Home Assistant for about 18 months and it's amazing. Consider that before rolling your own solution like I did.
+
 # PoSHue
 PowerShell classes (yes, really) that simplify interaction and scripting of actions for Philips Hue products such as Bridge, Lights, Groups and Sensors either locally or remotely.
 
